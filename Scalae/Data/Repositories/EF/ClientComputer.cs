@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Scalae.Data.Repositories
+namespace Scalae.Data.Repositories.EF
 {
     public class ClientComputer
     {

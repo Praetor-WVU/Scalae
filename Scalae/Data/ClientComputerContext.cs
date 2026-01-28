@@ -1,14 +1,18 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Scalae.Data.Repositories;
+using Scalae.Data.Repositories.EF;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Scalae.Data
 {
+    // Our database context class, inherits from DbContext
     public class ClientComputerContext : DbContext
     {
+        // List Property for table(s), will have one for each table
         public DbSet<ClientComputer> ClientComputers { get; set; }
+
+        // Configs our database to use SQLite (needs nuget package Microsoft.EntityFrameworkCore.Sqlite)
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite("Data source = machines.db");
