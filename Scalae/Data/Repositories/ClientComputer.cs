@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Scalae
+namespace Scalae.Data.Repositories
 {
     public class ClientComputer
     {
@@ -12,6 +12,7 @@ namespace Scalae
         public string IpAddress { get; set; }
         public string OperatingSystem { get; set; }
         public bool IsActive { get; set; }
+
         public ClientComputer() 
         { 
         }
