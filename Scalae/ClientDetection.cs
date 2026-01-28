@@ -13,8 +13,9 @@ using System.Threading.Tasks;
 
 namespace Scalae
 {
-    public static class ClientDetection
+   public static class ClientDetection
     {
+
         private const int DiscoveryPort = 37020;
         private const string DiscoveryRequest = "SCALAE_DISCOVER_v1";
         private const string DiscoveryResponsePrefix = "SCALAE_RESPONSE_v1|";
@@ -424,4 +425,5 @@ namespace Scalae
             return result;
         }
     }
+
 }
