@@ -7,10 +7,10 @@ using System.Text;
 namespace Scalae.Data
 {
     // Our database context class, inherits from DbContext
-    public class ClientComputerContext : DbContext
+    public class Database_Context : DbContext
     {
         // List Property for table(s), will have one for each table
-        public DbSet<ClientComputer> ClientComputers { get; set; }
+        public DbSet<ClientComputerRepositoryEf> ClientComputers { get; set; }
 
         // Configs our database to use SQLite (needs nuget package Microsoft.EntityFrameworkCore.Sqlite)
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
