@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <Folder Include="Data\Repositories\Memory\" />
+    <Folder Include="Models\" />
   </ItemGroup>
 
 </Project>
