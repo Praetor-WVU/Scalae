@@ -8,15 +8,10 @@ namespace Scalae.Interfaces
 {
     public interface IClientComputerRepository
     {
-       
-        IEnumerable<ClientComputer> ListWithItems();
+        void Create(ClientComputer clientComputer);
 
-        ClientComputer? GetWithItemsById(int id);
+        bool Update(ClientComputer clientComputer);
 
-        void Create(Order order);
-
-        bool Update(Order order);
-
-        void Delete(Order order);
+        void Delete(ClientComputer clientComputer);
     }
 }
