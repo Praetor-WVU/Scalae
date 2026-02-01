@@ -1,4 +1,9 @@
-﻿using System.Text;
+﻿using Microsoft.EntityFrameworkCore;
+using Scalae.Data;
+using Scalae.Data.Repositories.EF;
+using System;
+using System.ComponentModel;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -16,6 +21,9 @@ namespace Scalae
     /// </summary>
     public partial class MainWindow : Window
     {
+        private Database_Context db = new();
+        private BindingList<ClientComputerRepositoryEf> _bindingList;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -30,5 +38,7 @@ namespace Scalae
         {
 
         }
+
+       
     }
 }

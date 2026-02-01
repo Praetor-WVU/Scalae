@@ -9,13 +9,15 @@ namespace Scalae.Data
     // Our database context class, inherits from DbContext
     public class Database_Context : DbContext
     {
-        // List Property for table(s), will have one for each table
-        public DbSet<ClientComputerRepositoryEf> ClientComputers { get; set; }
 
-        // Configs our database to use SQLite (needs nuget package Microsoft.EntityFrameworkCore.Sqlite)
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlite("Data source = machines.db");
-        }
-    }
+         // Configs our database to use SQLite (needs nuget package Microsoft.EntityFrameworkCore.Sqlite)
+                protected override void OnConfiguring(
+                    DbContextOptionsBuilder optionsBuilder)
+                => optionsBuilder.UseSqlite("Data Source=machines.db");
+    
+        // List Property for table(s), will have one for each table
+        public DbSet<ClientComputerRepositoryEf> ClientComputers { get; set; } = default!;
+
+       
+ }
 }
