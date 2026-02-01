@@ -5,8 +5,32 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Scalae"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Scalae" Background="Pink" Height="450" Width="800">
     <Grid>
+        <TabControl Height="434" VerticalAlignment="Top" SelectionChanged="TabControl_SelectionChanged">
+            <TabItem Header="Tab 1" Height="22" Margin="-2,-2,-2,0" VerticalAlignment="Top">
+                <Grid Background="Purple">
+                    <!-- Named ListBox so code-behind can bind ItemsSource, I made it to where it read from the computer list might need to change where this si done for mvvm -->
+                    <ListBox x:Name="ListBoxComputers"
+                             SelectionChanged="ListBox_SelectionChanged"
+                             Margin="0,0,680,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Vertical" Margin="4">
+                                    <TextBlock Text="{Binding ComputerName}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding IpAddress}" FontSize="12" Foreground="LightGray"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
 
+                    <Canvas Background="pink" Margin="200,34,200,34">
+                    </Canvas>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Tab 2">
+                <Grid Background="Pink"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
