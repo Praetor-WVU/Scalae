@@ -11,6 +11,6 @@ namespace Scalae.Data
             => optionsBuilder.UseSqlite("Data Source=machines.db");
 
         // One DbSet per table
-        public DbSet<ClientComputer> ClientComputers { get; set; } = default!;
+        public DbSet<ClientMachine> ClientMachines { get; set; } = default!;
     }
 }

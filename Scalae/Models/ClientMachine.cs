@@ -6,11 +6,17 @@ namespace Scalae.Models
 {
     public class ClientMachine
     {
+        public int Id { get; set; }
         public string Name { get; set; }
         public string MACAddress { get; set; }
         public string IPAddress { get; set; }
         public string OperatingSystem { get; set; }
         public bool IsActive { get; set; }
+
+        public ClientMachine() 
+        { 
+        }
+
         public ClientMachine(string name, string macAddress, string ipAddress, string operatingSystem, bool isActive)
         {
             Name = name;

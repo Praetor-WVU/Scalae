@@ -6,12 +6,12 @@ using System.Windows.Controls;
 
 namespace Scalae.Interfaces
 {
-    public interface IClientComputerRepository
+    public interface IClientMachineRepository
     {
-        void Create(ClientComputer clientComputer);
+        void Create(ClientMachine clientMachine);
 
-        bool Update(ClientComputer clientComputer);
+        bool Update(ClientMachine clientMachine);
 
-        void Delete(ClientComputer clientComputer);
+        void Delete(ClientMachine clientMachine);
     }
 }

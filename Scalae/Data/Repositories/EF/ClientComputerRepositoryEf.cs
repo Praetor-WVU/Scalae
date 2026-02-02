@@ -8,33 +8,33 @@ using System.Linq;
 namespace Scalae.Data.Repositories.EF
 {
     // Our model class that represents a table in the database (this class represents the ClientComputers table)
-    public class ClientComputerRepositoryEf : IClientComputerRepository
+    public class ClientMachineRepositoryEf : IClientMachineRepository
     {
         private readonly Database_Context _context;
 
-        public ClientComputerRepositoryEf(Database_Context context)
+        public ClientMachineRepositoryEf(Database_Context context)
         {
             _context = context;
             _context.Database.EnsureCreated();
         }
 
-        public IEnumerable<ClientComputer> List() =>
-            _context.ClientComputers.AsNoTracking().ToList();
+        public IEnumerable<ClientMachine> List() =>
+            _context.ClientMachines.AsNoTracking().ToList();
 
-        public ClientComputer? GetById(int id) =>
-            _context.ClientComputers.Find(id);
+        public ClientMachine? GetById(int id) =>
+            _context.ClientMachines.Find(id);
 
-        public void Create(ClientComputer clientComputer)
+        public void Create(ClientMachine clientMachine)
         {
-            _context.ClientComputers.Add(clientComputer);
+            _context.ClientMachines.Add(clientMachine);
             _context.SaveChanges();
         }
 
-        public bool Update(ClientComputer clientComputer)
+        public bool Update(ClientMachine clientMachine)
         {
             try
             {
-                _context.ClientComputers.Update(clientComputer);
+                _context.ClientMachines.Update(clientMachine);
                 _context.SaveChanges();
                 return true;
             }
@@ -44,9 +44,9 @@ namespace Scalae.Data.Repositories.EF
             }
         }
 
-        public void Delete(ClientComputer clientComputer)
+        public void Delete(ClientMachine clientMachine)
         {
-            _context.ClientComputers.Remove(clientComputer);
+            _context.ClientMachines.Remove(clientMachine);
             _context.SaveChanges();
         }
 
