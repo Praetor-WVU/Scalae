@@ -12,7 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Management;
 
-namespace Scalae
+namespace Scalae.Models
 {
    public static class ClientDetection
     {
