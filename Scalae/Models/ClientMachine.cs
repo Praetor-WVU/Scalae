@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Scalae
+namespace Scalae.Models
 {
     public class ClientMachine
     {
