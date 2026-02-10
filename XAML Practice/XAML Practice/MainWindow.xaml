@@ -5,17 +5,26 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:XAML_Practice"
         mc:Ignorable="d"
+        SizeToContent="WidthAndHeight"
         Title="XAML Practice" Background="Green" Height="450" Width="800">
     <Grid>
-        <TabControl SelectionChanged="TabControl_SelectionChanged">
-            <TabItem Header="Test 1" Margin="-2,0,-2,0">
-                <Grid Background="LightBlue">
+        <TabControl SelectionChanged="TabControl_SelectionChanged" Background="lightblue">
+            <TabItem Header="Test 1" Margin="-2,0,-2,0" Background="lightblue">
+                <Grid Background="LightBlue" HorizontalAlignment="Center">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="77*"/>
-                        <ColumnDefinition Width="715*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <ListBox d:ItemsSource="{d:SampleData ItemCount=5}" Grid.ColumnSpan="2" Margin="0,0,699,0" SelectionChanged="ListBox_SelectionChanged"/>
-                    <Canvas  Background="pink" Margin="62,42,0,42" Grid.Column="1" HorizontalAlignment="Left" Width="593"/>
+                    <ListBox d:ItemsSource="{d:SampleData ItemCount=5}" Grid.ColumnSpan="2" Margin="0,0,699,0" SelectionChanged="ListBox_SelectionChanged" HorizontalAlignment="Left">
+
+                    </ListBox>
+                    <Canvas Background="pink" Margin="62,42,0,42" Grid.Column="1" HorizontalAlignment="Center" Width="593">
+                        <Ellipse Width="80" Height="80" Fill="Orange"
+                     Canvas.Left="200" Canvas.Top="100" />
+
+                        <Ellipse Width="50" Height="50" Fill="blue"
+                     Canvas.Left="215" Canvas.Top="115"/>
+                    </Canvas>
                 </Grid>
             </TabItem>
             <TabItem Header="Test 2">
