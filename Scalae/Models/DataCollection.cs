@@ -9,7 +9,7 @@ namespace Scalae.Models
     public class DataCollection
     {
         /* fullCollect returns a jagged list of all hardware information. The first list includes the names of each hardware component. The second list it the corresponding utilization of each. */
-        private String[][] fullCollect(ClientMachine machine)
+        private static String[][] FullCollect(ClientMachine machine)
         {
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
@@ -97,9 +97,9 @@ namespace Scalae.Models
             names.Add(!string.IsNullOrWhiteSpace(ramName) ? ramName : "RAM");
             names.Add(!string.IsNullOrWhiteSpace(gpuName) ? gpuName : "GPU");
 
-            int cpu = utilCPU(machine);
-            int ram = utilRAM(machine);
-            int gpu = utilGPU(machine);
+            int cpu = UtilCPU(machine);
+            int ram = UtilRAM(machine);
+            int gpu = UtilGPU(machine);
 
             values.Add(cpu >= 0 ? $"{cpu}%" : "N/A");
             values.Add(ram >= 0 ? $"{ram}%" : "N/A");
@@ -111,7 +111,7 @@ namespace Scalae.Models
         }
 
         /* Fetches CPU utilization. */
-        private int utilCPU(ClientMachine machine)
+        private static int UtilCPU(ClientMachine machine)
         {
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
@@ -148,7 +148,7 @@ namespace Scalae.Models
         }
 
         /* Fetches RAM utilization. */
-        private int utilRAM(ClientMachine machine)
+        private static int UtilRAM(ClientMachine machine)
         {
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
@@ -193,7 +193,7 @@ namespace Scalae.Models
         }
 
         /* Fetches GPU utilization. */
-        private int utilGPU(ClientMachine machine)
+        private static int UtilGPU(ClientMachine machine)
         {
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
