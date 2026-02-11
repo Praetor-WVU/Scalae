@@ -10,17 +10,17 @@ namespace Scalae.Data
             using var db = new Database_Context();
             db.Database.EnsureCreated();
 
-            if (db.ClientComputers.Any())
+            if (db.ClientMachines.Any())
                 return; // already seeded
 
             var samples = new[]
             {
-                new ClientComputer { MacAddress = "00:11:22:33:44:55", ComputerName = "WS-DEV-01", IpAddress = "192.168.1.10", OperatingSystem = "Windows 11 Pro", IsActive = true },
-                new ClientComputer { MacAddress = "00:AA:BB:CC:DD:01", ComputerName = "WS-TEST-02", IpAddress = "192.168.1.11", OperatingSystem = "Windows 10", IsActive = false },
-                new ClientComputer { MacAddress = "12:34:56:78:9A:BC", ComputerName = "LAPTOP-03", IpAddress = "192.168.1.12", OperatingSystem = "Ubuntu 24.04", IsActive = true }
+                new ClientMachine("WS-DEV-01", "00:11:22:33:44:55", "192.168.1.10", "Windows 11 Pro", true),
+                new ClientMachine("WS-TEST-02", "00:AA:BB:CC:DD:01", "192.168.1.11", "Windows 10", false),
+                new ClientMachine("LAPTOP-03", "12:34:56:78:9A:BC", "192.168.1.12", "Ubuntu 24.04", true)
             };
 
-            db.ClientComputers.AddRange(samples);
+            db.ClientMachines.AddRange(samples);
             db.SaveChanges();
         }
     }

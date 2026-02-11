@@ -26,7 +26,7 @@ namespace Scalae
     public partial class MainWindow : Window
     {
         private Database_Context _db = new();
-        private ObservableCollection<ClientComputer> _machines;
+        private ObservableCollection<ClientMachine> _machines;
 
 
         public MainWindow()
@@ -35,12 +35,14 @@ namespace Scalae
             // Ensure DB and tables exist
             _db.Database.EnsureCreated();
 
+            this.SizeToContent = SizeToContent.WidthAndHeight;
+
             // Load data into an ObservableCollection so the UI updates when items change
-            var list = _db.ClientComputers.AsNoTracking().ToList();
-            _machines = new ObservableCollection<ClientComputer>(list);
+            var list = _db.ClientMachines.AsNoTracking().ToList();
+            _machines = new ObservableCollection<ClientMachine>(list);
 
             // Bind the collection to the ListBox
-            ListBoxComputers.ItemsSource = _machines;
+            ListBoxMachines.ItemsSource = _machines;
 
 
         }

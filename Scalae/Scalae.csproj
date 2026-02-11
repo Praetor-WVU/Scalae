@@ -24,6 +24,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Msagl" Version="1.1.6" />
+    <PackageReference Include="Microsoft.Msagl.Drawing" Version="1.1.6" />
+    <PackageReference Include="Microsoft.Msagl.GraphViewerGDI" Version="1.1.7" />
+    <PackageReference Include="ScottPlot" Version="5.1.57" />
+    <PackageReference Include="System.Management" Version="10.0.3" />
     <PackageReference Include="System.DirectoryServices.AccountManagement" Version="10.0.3" />
     <PackageReference Include="System.Management" Version="10.0.3" />
   </ItemGroup>
