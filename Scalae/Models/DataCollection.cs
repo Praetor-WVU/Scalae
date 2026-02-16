@@ -9,7 +9,7 @@ namespace Scalae.Models
     public class DataCollection
     {
         /* fullCollect returns a jagged list of all hardware information. The first list includes the names of each hardware component. The second list it the corresponding utilization of each. */
-        private static String[][] FullCollect(ClientMachine machine)
+        private String[][] fullCollect(ClientMachine machine)
         {
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
@@ -54,52 +54,33 @@ namespace Scalae.Models
                     }
                 }
 
-                // RAM: total physical memory (bytes) and module count
-                ulong totalBytes = 0;
-                int moduleCount = 0;
-                try
+                // RAM: total physical memory (bytes)
+                using (var csSearcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem")))
                 {
-                    using (var csSearcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem")))
+                    foreach (ManagementObject mo in csSearcher.Get())
                     {
-                        foreach (ManagementObject mo in csSearcher.Get())
+                        if (mo["TotalPhysicalMemory"] != null)
                         {
-                            if (mo["TotalPhysicalMemory"] != null)
-                            {
-                                totalBytes = Convert.ToUInt64(mo["TotalPhysicalMemory"]);
-                                break;
-                            }
+                            var totalBytes = Convert.ToUInt64(mo["TotalPhysicalMemory"]);
+                            double gb = Math.Round(totalBytes / (1024.0 * 1024.0 * 1024.0), 2);
+                            ramName = $"{gb} GB RAM";
+                            break;
                         }
                     }
-
-                    using (var pmSearcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT Manufacturer, Capacity FROM Win32_PhysicalMemory")))
-                    {
-                        foreach (ManagementObject mo in pmSearcher.Get())
-                        {
-                            moduleCount++;
-                        }
-                    }
-                }
-                catch { /* ignore RAM details failures */ }
-
-                if (totalBytes > 0)
-                {
-                    double gb = Math.Round(totalBytes / (1024.0 * 1024.0 * 1024.0), 2);
-                    ramName = $"{gb} GB RAM" + (moduleCount > 0 ? $" ({moduleCount} module{(moduleCount>1?"s":"")})" : string.Empty);
                 }
             }
             catch
             {
-                // Ignore WMI failures; fall back to defaults below
+                // ignore WMI failures; fall back to defaults below
             }
 
-            // fallback labels if no detailed name present
             names.Add(!string.IsNullOrWhiteSpace(cpuName) ? cpuName : "CPU");
             names.Add(!string.IsNullOrWhiteSpace(ramName) ? ramName : "RAM");
             names.Add(!string.IsNullOrWhiteSpace(gpuName) ? gpuName : "GPU");
 
-            int cpu = UtilCPU(machine);
-            int ram = UtilRAM(machine);
-            int gpu = UtilGPU(machine);
+            int cpu = utilCPU(machine);
+            int ram = utilRAM(machine);
+            int gpu = utilGPU(machine);
 
             values.Add(cpu >= 0 ? $"{cpu}%" : "N/A");
             values.Add(ram >= 0 ? $"{ram}%" : "N/A");
@@ -110,8 +91,11 @@ namespace Scalae.Models
             return fullData;
         }
 
+        // Expose a public wrapper so other classes (e.g., MainWindow) can request a collection.
+        public String[][] CollectFull(ClientMachine machine) => fullCollect(machine);
+
         /* Fetches CPU utilization. */
-        private static int UtilCPU(ClientMachine machine)
+        private int utilCPU(ClientMachine machine)
         {
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
@@ -148,7 +132,7 @@ namespace Scalae.Models
         }
 
         /* Fetches RAM utilization. */
-        private static int UtilRAM(ClientMachine machine)
+        private int utilRAM(ClientMachine machine)
         {
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
@@ -193,7 +177,7 @@ namespace Scalae.Models
         }
 
         /* Fetches GPU utilization. */
-        private static int UtilGPU(ClientMachine machine)
+        private int utilGPU(ClientMachine machine)
         {
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
@@ -210,7 +194,6 @@ namespace Scalae.Models
                 var scope = new ManagementScope(scopePath, options);
                 scope.Connect();
 
-                // Try common perf class names that may expose GPU utilization
                 var candidateQueries = new[]
                 {
                     "SELECT UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUPerf",
