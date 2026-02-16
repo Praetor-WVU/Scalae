@@ -48,7 +48,7 @@ namespace Scalae
             _machines = new ObservableCollection<ClientMachine>(list);
             // Bind the collection to the ListBox
             ListBoxMachines.ItemsSource = _machines;
-
+            // Start the periodic collection loop, closes on main window close.
             StartPeriodicCollection();
             this.Closing += MainWindow_Closing;
         }
