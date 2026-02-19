@@ -1,8 +1,12 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Scalae.Logging;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Management;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -10,12 +14,20 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Management;
 
 namespace Scalae.Models
 {
-   public static class ClientDetection
+   public class ClientDetection
     {
+        private readonly ILogger<ClientDetection> _logger;
+        // Add a static logger for use inside static methods
+        private static readonly ILogger<ClientDetection> _staticLogger = NullLogger<ClientDetection>.Instance;
+
+        // Accept the logging abstraction via constructor injection.
+        public ClientDetection(ILoggingService? loggingService = null)
+        {
+            _logger = loggingService?.CreateLogger<ClientDetection>() ?? NullLogger<ClientDetection>.Instance;
+        }
 
         private const int DiscoveryPort = 37020;
         private const string DiscoveryRequest = "SCALAE_DISCOVER_v1";
@@ -25,7 +37,10 @@ namespace Scalae.Models
         public static ClientMachine ClientDetectIP(string ipAddress, string? username = null, string? password = null, int timeoutMs = 1000)
         {
             if (string.IsNullOrWhiteSpace(ipAddress))
+            {
+                _staticLogger.LogError("IP address is required for IP-based detection");
                 throw new ArgumentNullException(nameof(ipAddress));
+            }
 
             // Normalize IP
             IPAddress? ip = null;
@@ -39,6 +54,7 @@ namespace Scalae.Models
                 }
                 catch
                 {
+                    _staticLogger.LogWarning("Failed to parse IP address {IP} or resolve DNS; proceeding with raw input", ipAddress);
                     // leave null
                 }
             }
@@ -57,6 +73,7 @@ namespace Scalae.Models
             }
             catch
             {
+                _staticLogger.LogWarning("Failed to ping IP {IP} during detection", ipAddress);
                 isAlive = false;
             }
 
@@ -70,6 +87,7 @@ namespace Scalae.Models
             }
             catch
             {
+                _staticLogger.LogWarning("Failed to perform reverse DNS lookup for IP {IP}", ipAddress);
                 hostName ??= null;
             }
 
@@ -132,12 +150,17 @@ namespace Scalae.Models
             }
             catch
             {
+                _staticLogger.LogWarning("WMI query failed for IP {IP}; this may be expected if the target is not Windows or remote WMI is not enabled", ipAddress);
                 // WMI failed -- fallback to arp lookup and local DNS
                 try
                 {
                     mac ??= GetMacFromArp(ipAddress);
                 }
-                catch { /* ignore */ }
+                catch 
+                { 
+                    _staticLogger.LogWarning("Failed to get MAC address from ARP table for IP {IP}", ipAddress);
+                    /* ignore */
+                }
             }
 
             // Final best-effort hostname
@@ -150,9 +173,11 @@ namespace Scalae.Models
             }
             catch
             {
+                _staticLogger.LogWarning("Final attempt at reverse DNS lookup failed for IP {IP}", ipAddress);
                 // ignore
             }
 
+            _staticLogger.LogInformation("Completed IP-based detection for {IP}: HostName={HostName}, MAC={MAC}, OS={OS}, IsAlive={IsAlive}", ipAddress, hostName, mac, os, isAlive);
             return new ClientMachine(
                 name: hostName,
                 macAddress: NormalizeMac(mac),
@@ -176,11 +201,13 @@ namespace Scalae.Models
                 if (NormalizeMac(kv.Value) == target)
                 {
                     // Found IP -> reuse IP detection
+                    _staticLogger.LogDebug("Found IP {IP} for MAC {MAC} in ARP table, performing IP-based detection", kv.Key, target);
                     return ClientDetectIP(kv.Key);
                 }
             }
 
             // Not found in ARP table -> return object with only MAC
+            _staticLogger.LogWarning("MAC address {MAC} not found in ARP table; returning minimal ClientMachine entry", target);
             return new ClientMachine(
                 name: null,
                 macAddress: target,
@@ -209,6 +236,7 @@ namespace Scalae.Models
             }
             catch
             {
+                _staticLogger.LogWarning("Failed to send discovery broadcast on global broadcast address");
                 // ignore send errors for broadcast
             }
 
@@ -238,6 +266,7 @@ namespace Scalae.Models
             }
             catch
             {
+                _staticLogger.LogWarning("Failed to enumerate network interfaces for per-interface broadcasts");
                 // ignore enumeration errors
             }
 
@@ -302,6 +331,7 @@ namespace Scalae.Models
                 }
                 catch
                 {
+                    _staticLogger.LogWarning("Failed to process a discovery response: {Message}", "Malformed response or processing error");
                     // ignore malformed responses and continue
                 }
             }
@@ -313,7 +343,10 @@ namespace Scalae.Models
         public static IEnumerable<ClientMachine> DetectSubnet(string baseIp, int prefix = 24, int timeoutMs = 300)
         {
             if (string.IsNullOrWhiteSpace(baseIp))
+            {
+                _staticLogger.LogError("Base IP is required for subnet detection");
                 throw new ArgumentNullException(nameof(baseIp));
+            }
 
             // Only simple /24 supported for now
             var baseParts = baseIp.Split('.');
@@ -338,6 +371,7 @@ namespace Scalae.Models
                 }
                 catch
                 {
+                    _staticLogger.LogWarning("Failed to ping IP {IP} during subnet detection", ip);
                     // ignore host
                 }
             });
@@ -350,13 +384,20 @@ namespace Scalae.Models
         private static string? NormalizeMac(string? mac)
         {
             if (string.IsNullOrWhiteSpace(mac))
-                return null;
+            {
+                _staticLogger.LogDebug("No MAC address provided to normalize");
+                return null; 
+            }
 
             var cleaned = Regex.Replace(mac, @"[^0-9A-Fa-f]", "");
             if (cleaned.Length != 12)
+            {
+                _staticLogger.LogWarning("Invalid MAC address format: {MAC}", mac);
                 return mac.ToUpperInvariant();
-
+            }
+               
             var parts = Enumerable.Range(0, 6).Select(i => cleaned.Substring(i * 2, 2));
+            _staticLogger.LogDebug("Normalized MAC address {Original} to {Normalized}", mac, string.Join(":", parts).ToUpperInvariant());
             return string.Join(":", parts).ToUpperInvariant();
         }
 
@@ -364,7 +405,10 @@ namespace Scalae.Models
         {
             var table = GetArpTable();
             if (table.TryGetValue(ipAddress, out var mac))
-                return mac;
+            {
+                _staticLogger.LogDebug("Found MAC {MAC} for IP {IP} in ARP table", mac, ipAddress);
+                return mac; 
+            }
 
             throw new InvalidOperationException("MAC not found in ARP table for IP: " + ipAddress);
         }
@@ -380,6 +424,7 @@ namespace Scalae.Models
                 broad[i] = (byte)(addrBytes[i] | (~maskBytes[i]));
             }
 
+            _staticLogger.LogDebug("Computed broadcast address {Broadcast} from IP {IP} and Mask {Mask}", new IPAddress(broad), address, mask);
             return new IPAddress(broad);
         }
 
@@ -421,8 +466,10 @@ namespace Scalae.Models
             catch
             {
                 // ignore failures; return whatever we parsed (possibly empty)
+                _staticLogger.LogError("Failed to retrieve ARP table: {Message}", "ARP command failed");
             }
 
+            _staticLogger.LogInformation("Retrieved ARP table with {Count} entries", result.Count);
             return result;
         }
     }
