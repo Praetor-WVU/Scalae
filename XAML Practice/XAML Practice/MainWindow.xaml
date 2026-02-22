@@ -19,11 +19,7 @@
 
                     </ListBox>
                     <Canvas Background="pink" Margin="62,42,0,42" Grid.Column="1" HorizontalAlignment="Center" Width="593">
-                        <Ellipse Width="80" Height="80" Fill="Orange"
-                     Canvas.Left="200" Canvas.Top="100" />
-
-                        <Ellipse Width="50" Height="50" Fill="blue"
-                     Canvas.Left="215" Canvas.Top="115"/>
+                        
                     </Canvas>
                 </Grid>
             </TabItem>

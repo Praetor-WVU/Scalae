@@ -1,4 +1,8 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Scalae.Logging;
+using Scalae.Models;
+using System;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Net;
@@ -9,10 +13,16 @@ namespace Scalae.WindowsIntegration
     /// <summary>
     /// Represents a Windows Domain integration. Instances store domain connection info and provide
     /// helper methods to validate credentials and determine whether a user/machine is allowed.
-    /// Note: this uses System.DirectoryServices.AccountManagement and may require a project reference.
     /// </summary>
     internal class Integration
     {
+        private readonly ILogger<Integration> _logger;
+
+        // Accept the logging abstraction via constructor injection.
+        public Integration(ILoggingService? loggingService = null)
+        {
+            _logger = loggingService?.CreateLogger<Integration>() ?? NullLogger<Integration>.Instance;
+        }
         public string DomainName { get; }
         /// Optional domain controller or LDAP path (can be null to let API locate DCs).
         public string? DomainController { get; }
@@ -34,9 +44,10 @@ namespace Scalae.WindowsIntegration
         {
             if (!string.IsNullOrEmpty(_serviceAccountUser) && _serviceAccountPassword != null)
             {
+                _logger.LogDebug("Creating PrincipalContext with service account credentials for domain {Domain}", DomainName);
                 return new PrincipalContext(ContextType.Domain, DomainController ?? DomainName, _serviceAccountUser, _serviceAccountPassword);
             }
-
+            _logger.LogDebug("Creating PrincipalContext without explicit credentials for domain {Domain}", DomainName);
             return new PrincipalContext(ContextType.Domain, DomainController ?? DomainName);
         }
 
@@ -55,6 +66,7 @@ namespace Scalae.WindowsIntegration
             }
             catch
             {
+                _logger.LogWarning("Credential validation failed for user {User} in domain {Domain}", username, DomainName);
                 return false;
             }
         }
@@ -85,10 +97,12 @@ namespace Scalae.WindowsIntegration
                 var localAdmins = GroupPrincipal.FindByIdentity(ctx, "Administrators");
                 if (localAdmins != null && user.IsMemberOf(localAdmins)) return true;
 
+                _logger.LogInformation("User {User} is not a domain admin in domain {Domain}", samAccountName, DomainName);
                 return false;
             }
             catch
             {
+                _logger.LogWarning("Failed to check domain admin status for user {User} in domain {Domain}", samAccountName, DomainName);
                 return false;
             }
         }
@@ -120,10 +134,11 @@ namespace Scalae.WindowsIntegration
                 }
                 catch
                 {
+                    _logger.LogWarning("Reverse DNS lookup failed for IP {IP} when checking domain membership for machine {Machine}", machine.IPAddress, machine.Name);
                     // ignore DNS failures
                 }
             }
-
+            _logger.LogInformation("Unable to determine domain membership for machine {Machine} (Name: {Name}, IP: {IP}) in domain {Domain}", machine.Name, machine.Name, machine.IPAddress, DomainName);
             // Unable to determine domain membership -> treat as not in domain
             return false;
         }

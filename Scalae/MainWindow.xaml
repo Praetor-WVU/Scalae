@@ -4,14 +4,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Scalae"
+        xmlns:ScottPlot="clr-namespace:ScottPlot;assembly=ScottPlot"
         mc:Ignorable="d"
-        Title="Scalae" Background="Pink" Height="450" Width="800">
+        Title="Scalae" Background="#480355" Height="450" Width="800">
     <Grid>
-        <TabControl Height="434" SelectionChanged="TabControl_SelectionChanged" Background="pink">
+        <TabControl Height="434" SelectionChanged="TabControl_SelectionChanged" Background="#9448bc">
             <TabItem Header="Tab 1" Height="22" Margin="1,1,-5,0" VerticalAlignment="Top">
-                <Grid Background="Purple">
+                <Grid Background="#7699d4" Height="387" Margin="10,0,10,0">
                     <!-- Named ListBox so code-behind can bind ItemsSource, I made it to where it read from the computer list might need to change where this si done for mvvm -->
-                    <ListBox x:Name="ListBoxMachines"
+                    <ListBox  Background="#63b4d1" x:Name="ListBoxMachines"
                              SelectionChanged="ListBox_SelectionChanged"
                              Margin="0,0,680,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="0">
                         <ListBox.ItemTemplate>
@@ -23,9 +24,17 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-
-                    <Canvas Background="pink" Margin="200,34,200,34">
-                    </Canvas>
+                    <Grid Background="#90fcf9" Margin="178,36,56,36">
+                        <StatusBar Margin="10,10,10,278"/>
+                        <RichTextBox Margin="10,42,10,10">
+                            <FlowDocument>
+                                <Paragraph>
+                                    <Run Text="RichTextBox"/>
+                                </Paragraph>
+                            </FlowDocument>
+                        </RichTextBox>
+                    </Grid>
+                    <!--ScottPlot Content-->
                 </Grid>
             </TabItem>
             <TabItem Header="Tab 2" Margin="5,1,-9,0">

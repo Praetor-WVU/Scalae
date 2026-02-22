@@ -1,16 +1,27 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Scalae.Logging;
+using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Management;
+using System.Text;
 
 namespace Scalae.Models
 {
     /* DataCollection collects hardware information from Scalae clients using information from ClientMachine objects such as IP address and MAC address (preferred method). */
     public class DataCollection
     {
+        private readonly ILogger<DataCollection> _logger;
+
+        // Accept the logging abstraction via constructor injection.
+        public DataCollection(ILoggingService? loggingService = null)
+        {
+            _logger = loggingService?.CreateLogger<DataCollection>() ?? NullLogger<DataCollection>.Instance;
+        }
         /* fullCollect returns a jagged list of all hardware information. The first list includes the names of each hardware component. The second list it the corresponding utilization of each. */
         private String[][] fullCollect(ClientMachine machine)
         {
+            _logger.LogInformation("Starting full hardware data collection for machine: {MachineName} (IP: {IPAddress})", machine.Name, machine.IPAddress);
             if (machine == null) throw new ArgumentNullException(nameof(machine));
 
             String[][] fullData = new String[2][];
@@ -72,6 +83,7 @@ namespace Scalae.Models
             catch
             {
                 // ignore WMI failures; fall back to defaults below
+                _logger.LogError("Failed to collect hardware information for machine: {MachineName} (IP: {IPAddress}). Defaulting to generic names.", machine.Name, machine.IPAddress);
             }
 
             names.Add(!string.IsNullOrWhiteSpace(cpuName) ? cpuName : "CPU");
@@ -88,6 +100,7 @@ namespace Scalae.Models
 
             fullData[0] = names.ToArray();
             fullData[1] = values.ToArray();
+            _logger.LogInformation("Completed hardware data collection for machine: {MachineName} (IP: {IPAddress}).", machine.Name, machine.IPAddress);
             return fullData;
         }
 
@@ -126,6 +139,7 @@ namespace Scalae.Models
             catch
             {
                 // fallthrough to unknown
+                _logger.LogError("Failed to collect CPU utilization for machine: {MachineName} (IP: {IPAddress}).", machine.Name, machine.IPAddress);
             }
 
             return -1; // unknown/unavailable
@@ -171,6 +185,7 @@ namespace Scalae.Models
             catch
             {
                 // fallthrough to unknown
+                _logger.LogError("Failed to collect RAM utilization for machine: {MachineName} (IP: {IPAddress}).", machine.Name, machine.IPAddress);
             }
 
             return -1; // unknown/unavailable
@@ -219,12 +234,14 @@ namespace Scalae.Models
                     catch
                     {
                         // try next query
+                        _logger.LogWarning("Query '{Query}' failed for GPU utilization on machine: {MachineName} (IP: {IPAddress}). Trying next query.", q, machine.Name, machine.IPAddress);
                     }
                 }
             }
             catch
             {
                 // fallthrough to unknown
+                _logger.LogError("Failed to collect GPU utilization for machine: {MachineName} (IP: {IPAddress}).", machine.Name, machine.IPAddress);
             }
 
             return -1; // unknown/unavailable
