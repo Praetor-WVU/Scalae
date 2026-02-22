@@ -30,7 +30,7 @@ namespace Scalae
         // Database & collector fields (allow injection but preserve default behavior)
         private readonly Database_Context _db;
         private readonly DataCollection _collector;
-        // Initialize the collection inline to satisfy definite-assignment for non-nullable field.
+
         private ObservableCollection<ClientMachine> _machines = new ObservableCollection<ClientMachine>();
 
         // timer fields
