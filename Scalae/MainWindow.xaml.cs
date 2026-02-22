@@ -141,5 +141,10 @@ namespace Scalae
 
         private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
+
+        private void RichTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            //Code behind for showing illustrations on the rich textbox
+        }
     }
 }

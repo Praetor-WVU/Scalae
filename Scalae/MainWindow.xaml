@@ -25,20 +25,25 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <Grid Background="#90fcf9" Margin="178,36,56,36">
-                        <StatusBar Margin="10,10,10,278"/>
-                        <RichTextBox Margin="10,42,10,10">
+                        <StatusBar Name="sbar" Margin="10,10,10,278">
+                            <StatusBarItem>
+                                <TextBlock Name="Device" Text="{Binding Name}" TextAlignment="Left"/>
+                                
+                            </StatusBarItem>
+                        </StatusBar>
+                        <RichTextBox Margin="10,42,10,10" TextChanged="RichTextBox_TextChanged">
                             <FlowDocument>
                                 <Paragraph>
-                                    <Run Text="RichTextBox"/>
+                                    
                                 </Paragraph>
                             </FlowDocument>
                         </RichTextBox>
                     </Grid>
-                    <!--ScottPlot Content-->
                 </Grid>
             </TabItem>
             <TabItem Header="Tab 2" Margin="5,1,-9,0">
                 <Grid Background="Pink"/>
+                
             </TabItem>
         </TabControl>
     </Grid>

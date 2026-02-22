@@ -19,18 +19,49 @@
 
                     </ListBox>
                     <Canvas Background="pink" Margin="62,42,0,42" Grid.Column="1" HorizontalAlignment="Center" Width="593">
-                        
+                        <StatusBar Height="42" Width="534" HorizontalAlignment="Center" VerticalAlignment="Top" Canvas.Left="30" Canvas.Top="10">
+                            <StatusBarItem>
+                                
+                            </StatusBarItem>
+                        </StatusBar>
+
                     </Canvas>
                 </Grid>
             </TabItem>
             <TabItem Header="Test 2">
                 <Grid Background="#FFE5E5E5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="9*"/>
-                        <ColumnDefinition Width="6*"/>
-                        <ColumnDefinition Width="382*"/>
-                    </Grid.ColumnDefinitions>
-                    <Button Content="test 2 button" Height="30" Margin="206,126,437,250" Grid.Column="2"/>
+                    <StatusBar Name="sbar" 
+           VerticalAlignment="Bottom" Background="Beige" >
+
+                        <StatusBarItem>
+                            <TextBlock>Downloading File</TextBlock>
+                        </StatusBarItem>
+                        <StatusBarItem>
+                            <ProgressBar Width="100" Height="20"
+                 Name="progressBar1">
+                                <ProgressBar.Triggers>
+                                    <EventTrigger RoutedEvent="ProgressBar.Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation
+                Storyboard.TargetName="progressBar1" 
+                Storyboard.TargetProperty="Value"
+                From="0" To="100" Duration="0:0:5"  />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </ProgressBar.Triggers>
+                            </ProgressBar>
+                        </StatusBarItem>
+                        <Separator/>
+                        <StatusBarItem>
+                            <TextBlock>Online</TextBlock>
+                        </StatusBarItem>
+                        <StatusBarItem HorizontalAlignment="Right">
+                            <Image Source="images\help.bmp" Width="16" Height="16"/>
+                        </StatusBarItem>
+                    </StatusBar>
+
                 </Grid>
             </TabItem>
         </TabControl>
