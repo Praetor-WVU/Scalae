@@ -12,6 +12,7 @@ namespace Scalae.Models
         public string IPAddress { get; set; }
         public string OperatingSystem { get; set; }
         public bool IsActive { get; set; }
+       
 
         public ClientMachine() 
         { 
