@@ -27,8 +27,10 @@ namespace Scalae
     /// 
     public partial class MainWindow : Window
     {
+        // Datababase fields
         private Database_Context _db = new();
         private ObservableCollection<ClientMachine> _machines;
+
 
         // timer fields
         private PeriodicTimer? _periodicTimer;
