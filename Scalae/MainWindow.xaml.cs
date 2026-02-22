@@ -5,6 +5,7 @@ using Scalae.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading;
@@ -24,13 +25,12 @@ namespace Scalae
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    /// 
     public partial class MainWindow : Window
     {
-        // Datababase fields
-        private Database_Context _db = new();
+        // Database & collector fields (allow injection but preserve default behavior)
+        private readonly Database_Context _db;
+        private readonly DataCollection _collector;
         private ObservableCollection<ClientMachine> _machines;
-
 
         // timer fields
         private PeriodicTimer? _periodicTimer;
@@ -38,9 +38,24 @@ namespace Scalae
         private readonly TimeSpan _collectionInterval = TimeSpan.FromMinutes(5);
         private readonly SemaphoreSlim _collectLock = new SemaphoreSlim(1, 1);
 
-        public MainWindow()
+        // Default constructor preserves existing behavior
+        public MainWindow() : this(new Database_Context(), new DataCollection())
         {
+        }
+
+        // DI-friendly constructor that integrates with existing initialization
+        public MainWindow(Database_Context db, DataCollection collector)
+        {
+            _db = db ?? throw new ArgumentNullException(nameof(db));
+            _collector = collector ?? throw new ArgumentNullException(nameof(collector));
+
             InitializeComponent();
+            InitializeWindow();
+        }
+
+        // Shared initialization logic (keeps all original setup lines)
+        private void InitializeWindow()
+        {
             // Ensure DB and tables exist
             _db.Database.EnsureCreated();
             this.SizeToContent = SizeToContent.WidthAndHeight;
@@ -48,8 +63,10 @@ namespace Scalae
             // Load data into an ObservableCollection so the UI updates when items change
             var list = _db.ClientMachines.AsNoTracking().ToList();
             _machines = new ObservableCollection<ClientMachine>(list);
+
             // Bind the collection to the ListBox
             ListBoxMachines.ItemsSource = _machines;
+
             // Start the periodic collection loop, closes on main window close.
             StartPeriodicCollection();
             this.Closing += MainWindow_Closing;
@@ -71,8 +88,6 @@ namespace Scalae
             // run background loop (fire-and-forget)
             _ = Task.Run(async () =>
             {
-                var collector = new DataCollection();
-
                 try
                 {
                     while (await _periodicTimer.WaitForNextTickAsync(_timerCts.Token))
@@ -83,9 +98,8 @@ namespace Scalae
 
                         try
                         {
-                            await CollectOnceAsync(collector, _timerCts.Token);
+                            await CollectOnceAsync(_collector, _timerCts.Token);
                         }
-
                         finally
                         {
                             _collectLock.Release();
