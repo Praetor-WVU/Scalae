@@ -27,7 +27,7 @@
                     <Grid Background="#90fcf9" Margin="178,36,56,36">
                         <StatusBar Name="sbar" Margin="10,10,10,278">
                             <StatusBarItem>
-                                <TextBlock Name="Device" Text="{Binding Name}" TextAlignment="Left"/>
+                                <!--<TextBlock Name="Device" Text="{Binding Name}" TextAlignment="Left"/>-->
                                 
                             </StatusBarItem>
                         </StatusBar>
