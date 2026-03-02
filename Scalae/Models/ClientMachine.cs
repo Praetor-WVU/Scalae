@@ -12,6 +12,17 @@ namespace Scalae.Models
         public string IPAddress { get; set; }
         public string OperatingSystem { get; set; }
         public bool IsActive { get; set; }
+        
+        // New: Display latest hardware info
+        public string? LastCpuModel { get; set; }
+        public double? LastCpuUtilization { get; set; }
+        public string? LastGpuModel { get; set; }
+        public double? LastGpuUtilization { get; set; }
+        public double? LastRamUtilization { get; set; }
+        public DateTime? LastDataCollectionTime { get; set; }
+
+        // Navigation property to all historical data
+        public ICollection<ClientMachineData> HistoricalData { get; set; } = new List<ClientMachineData>();
        
 
         public ClientMachine() 
