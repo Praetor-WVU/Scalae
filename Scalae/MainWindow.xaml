@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Scalae"
         xmlns:ScottPlot="clr-namespace:ScottPlot;assembly=ScottPlot"
+        xmlns:Charting="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=DotNetProjects.DataVisualization.Toolkit"
         mc:Ignorable="d"
         Title="Scalae" Background="#480355" Height="450" Width="800">
     <Grid>
@@ -25,25 +26,27 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <Grid Background="#90fcf9" Margin="178,36,56,36">
-                        <StatusBar Name="sbar" Margin="10,10,10,278">
-                            <StatusBarItem>
-                                <!--<TextBlock Name="Device" Text="{Binding Name}" TextAlignment="Left"/>-->
-                                
-                            </StatusBarItem>
-                        </StatusBar>
-                        <RichTextBox Margin="10,42,10,10" TextChanged="RichTextBox_TextChanged">
-                            <FlowDocument>
-                                <Paragraph>
-                                    
-                                </Paragraph>
-                            </FlowDocument>
-                        </RichTextBox>
+                        <GroupBox Header="" Margin="5,0,5,10">
+                            <Label VerticalAlignment="Top" Background="#7699D4" Width="504" Height="276" Margin="10,0,0,0">
+                                <Charting:Chart Height="233" Width="342" >
+                                    <Charting:BarSeries Title= "{Binding Name}"
+                                                        IndependentValueBinding="{Binding Path=Key}" 
+                                                        DependentValueBinding="{Binding Path=Value}" 
+                                                        ItemsSource="{Binding Roledata}">
+                                        
+                                    </Charting:BarSeries>
+                                </Charting:Chart>
+                            </Label>
+
+
+                        </GroupBox>
+
                     </Grid>
                 </Grid>
             </TabItem>
             <TabItem Header="Tab 2" Margin="5,1,-9,0">
                 <Grid Background="Pink"/>
-                
+
             </TabItem>
         </TabControl>
     </Grid>

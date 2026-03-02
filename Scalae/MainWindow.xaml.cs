@@ -156,12 +156,11 @@ namespace Scalae
             }
         }
 
-        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
+        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+            //Code to update the bargraphs with the data from the selected machine in the listbox.
+        }
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
 
-        private void RichTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            //Code behind for showing illustrations on the rich textbox
-        }
+       
     }
 }
