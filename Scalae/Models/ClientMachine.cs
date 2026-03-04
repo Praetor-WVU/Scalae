@@ -22,7 +22,6 @@ namespace Scalae.Models
         public DateTime? LastDataCollectionTime { get; set; }
 
         // Navigation property to all historical data
-        public ICollection<ClientMachineData> HistoricalData { get; set; } = new List<ClientMachineData>();
        
 
         public ClientMachine() 
