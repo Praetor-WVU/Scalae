@@ -15,6 +15,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -161,6 +162,8 @@ namespace Scalae
         private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) 
         {
             //Code to update the bargraphs with the data from the selected machine in the listbox.
+            
+
         }
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { 
         

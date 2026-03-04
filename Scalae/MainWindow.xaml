@@ -26,7 +26,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <Grid Background="#90fcf9" Margin="178,36,56,36">
-                        <GroupBox Header="{Binding Name}" BorderBrush="Black" Margin="5,5,5,5">
+                        <GroupBox Header="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" BorderBrush="Black" Margin="5,5,5,5">
                             <Label  Background="#7699D4" Height="278" Margin="2,2,2,2">
                                 <Charting:Chart Height="268" Width="422" Title="Test" HorizontalAlignment="Left" >
                                     <Charting:BarSeries 
