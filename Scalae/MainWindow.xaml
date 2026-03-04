@@ -15,7 +15,7 @@
                     <!-- Named ListBox so code-behind can bind ItemsSource, I made it to where it read from the computer list might need to change where this si done for mvvm -->
                     <ListBox  Background="#63b4d1" x:Name="ListBoxMachines"
                              SelectionChanged="ListBox_SelectionChanged"
-                             Margin="0,0,680,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="0">
+                             Margin="0,0,647,0" MinWidth="0">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Vertical" Margin="4">
@@ -26,10 +26,10 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <Grid Background="#90fcf9" Margin="178,36,56,36">
-                        <GroupBox Header="{Binding Name}" BorderBrush="Black" Margin="0,0,0,0">
-                            <Label  Background="#7699D4" Height="278" Margin="11,11,11,11">
-                                <Charting:Chart Height="233" Width="342" >
-                                    <Charting:BarSeries Title= "{Binding Utilization}"
+                        <GroupBox Header="{Binding Name}" BorderBrush="Black" Margin="5,5,5,5">
+                            <Label  Background="#7699D4" Height="278" Margin="2,2,2,2">
+                                <Charting:Chart Height="268" Width="422" Title="Test" HorizontalAlignment="Left" >
+                                    <Charting:BarSeries 
                                                         IndependentValueBinding="{Binding Path=Key}" 
                                                         DependentValueBinding="{Binding Path=Value}" 
                                                         ItemsSource="{Binding Roledata}">
