@@ -9,14 +9,17 @@ namespace Scalae.Data
     {
         public static void Seed()
         {
-            // Creates a new instance of the database context, ensure database and tables are created, and creates new repository instance so Create(ClientMachine) method can be called
             using var db = new Database_Context();
             db.Database.EnsureCreated();
+            
+            // Check if data already exists - if so, skip seeding
+            if (db.ClientMachines.Any())
+            {
+                return; // Database has been seeded
+            }
+            
             var repo = new ClientMachineRepositoryEf(db);
             var dataRepo = new ClientMachineDataRepositoryEf(db);
-
-            //Example of how to add a single machine, but we will seed multiple below
-            //repo.Create(new ClientMachine("WS-DEV-03", "00:11:22:33:44:66", "192.168.1.13", "Windows 11 Pro", true));
 
             // Define all machines to seed
             var machinesToSeed = new[]
@@ -31,7 +34,6 @@ namespace Scalae.Data
                 new ClientMachine("LAPTOP-03", "12:34:56:78:9A:BC", "192.168.1.12", "Ubuntu 24.04", true)
             };
 
-            // Add each machine using the repository
             foreach (var machine in machinesToSeed)
             {
                 repo.Create(machine);
@@ -50,10 +52,8 @@ namespace Scalae.Data
                 new ClientMachineData("12:34:56:78:9A:BC", "Intel Core i5-11400", 38.4, "AMD RX 6800 XT", 38.9, 16384, 52.6)
             };
 
-            // Add each machine data using the repository
             foreach (var machineData in machineDataToSeed)
             {
-                // Look up the ClientMachine by MAC address and set the foreign key
                 var machine = db.ClientMachines.FirstOrDefault(m => m.MACAddress == machineData.MacAddress);
                 if (machine != null)
                 {
