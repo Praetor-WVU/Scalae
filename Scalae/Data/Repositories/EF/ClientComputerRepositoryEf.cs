@@ -26,8 +26,10 @@ namespace Scalae.Data.Repositories.EF
 
         public void Create(ClientMachine clientMachine)
         {
-            _context.ClientMachines.Add(clientMachine);
-            _context.SaveChanges();
+            // Validation for data collextion alls
+                _context.ClientMachines.Add(clientMachine);
+                _context.SaveChanges();
+            
         }
 
         public bool Update(ClientMachine clientMachine)

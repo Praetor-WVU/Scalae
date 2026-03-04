@@ -6,6 +6,12 @@ namespace Scalae.Models
     {
         public int Id { get; set; }
         
+        // Foreign key
+        public int ClientMachineId { get; set; }
+        
+        // Navigation property
+        public ClientMachine ClientMachine { get; set; }
+        
         public string MacAddress { get; set; }   
         
         // CPU Information
@@ -20,8 +26,7 @@ namespace Scalae.Models
         public long RamTotalSize { get; set; } // In MB or GB
         public double RamUtilization { get; set; } // Percentage (0-100)
         
-        // Storage Information
-        public long StorageSize { get; set; } // In MB or GB
+        
         
         // Optional: Timestamp for when this data was collected
         public DateTime Timestamp { get; set; }
@@ -33,7 +38,7 @@ namespace Scalae.Models
 
         public ClientMachineData(string macAddress, string cpuModel, double cpuUtilization, 
                                   string gpuModel, double gpuUtilization, long ramTotalSize, 
-                                  double ramUtilization, long storageSize)
+                                  double ramUtilization)
         {
             
             MacAddress = macAddress;
@@ -43,7 +48,6 @@ namespace Scalae.Models
             GpuUtilization = gpuUtilization;
             RamTotalSize = ramTotalSize;
             RamUtilization = ramUtilization;
-            StorageSize = storageSize;
             Timestamp = DateTime.UtcNow;
         }
     }

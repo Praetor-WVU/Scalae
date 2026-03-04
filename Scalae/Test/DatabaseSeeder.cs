@@ -40,20 +40,26 @@ namespace Scalae.Data
             // Define all machine data to seed
             var machineDataToSeed = new[]
             {
-                new ClientMachineData("00:11:22:33:44:66", "Intel Core i7-12700K", 45.5, "NVIDIA RTX 3070", 30.2, 32768, 60.0, 1024000),
-                new ClientMachineData("00:AA:BB:CC:DD:02", "AMD Ryzen 9 5900X", 55.3, "NVIDIA RTX 4080", 25.8, 16384, 45.5, 512000),
-                new ClientMachineData("12:34:56:78:9A:CD", "Intel Core i5-11400", 35.7, "AMD RX 6800 XT", 40.1, 16384, 50.3, 512000),
-                new ClientMachineData("00:11:22:33:44:77", "AMD Ryzen 7 5800X", 50.2, "NVIDIA GTX 1660 Ti", 35.6, 32768, 55.7, 1024000),
-                new ClientMachineData("00:AA:BB:CC:DD:03", "Intel Core i9-13900K", 65.8, "AMD RX 7900 XTX", 45.3, 65536, 70.2, 2048000),
-                new ClientMachineData("00:11:22:33:44:55", "Intel Core i7-12700K", 42.1, "NVIDIA RTX 3070", 28.5, 32768, 58.3, 1024000),
-                new ClientMachineData("00:AA:BB:CC:DD:01", "AMD Ryzen 9 5900X", 48.9, "NVIDIA RTX 4080", 32.7, 16384, 48.1, 512000),
-                new ClientMachineData("12:34:56:78:9A:BC", "Intel Core i5-11400", 38.4, "AMD RX 6800 XT", 38.9, 16384, 52.6, 512000)
+                new ClientMachineData("00:11:22:33:44:66", "Intel Core i7-12700K", 45.5, "NVIDIA RTX 3070", 30.2, 32768, 60.0),
+                new ClientMachineData("00:AA:BB:CC:DD:02", "AMD Ryzen 9 5900X", 55.3, "NVIDIA RTX 4080", 25.8, 16384, 45.5),
+                new ClientMachineData("12:34:56:78:9A:CD", "Intel Core i5-11400", 35.7, "AMD RX 6800 XT", 40.1, 16384, 50.3),
+                new ClientMachineData("00:11:22:33:44:77", "AMD Ryzen 7 5800X", 50.2, "NVIDIA GTX 1660 Ti", 35.6, 32768, 55.7),
+                new ClientMachineData("00:AA:BB:CC:DD:03", "Intel Core i9-13900K", 65.8, "AMD RX 7900 XTX", 45.3, 65536, 70.2),
+                new ClientMachineData("00:11:22:33:44:55", "Intel Core i7-12700K", 42.1, "NVIDIA RTX 3070", 28.5, 32768, 58.3),
+                new ClientMachineData("00:AA:BB:CC:DD:01", "AMD Ryzen 9 5900X", 48.9, "NVIDIA RTX 4080", 32.7, 16384, 48.1),
+                new ClientMachineData("12:34:56:78:9A:BC", "Intel Core i5-11400", 38.4, "AMD RX 6800 XT", 38.9, 16384, 52.6)
             };
 
             // Add each machine data using the repository
             foreach (var machineData in machineDataToSeed)
             {
-                dataRepo.Create(machineData);
+                // Look up the ClientMachine by MAC address and set the foreign key
+                var machine = db.ClientMachines.FirstOrDefault(m => m.MACAddress == machineData.MacAddress);
+                if (machine != null)
+                {
+                    machineData.ClientMachineId = machine.Id;
+                    dataRepo.Create(machineData);
+                }
             }
         }
     }
