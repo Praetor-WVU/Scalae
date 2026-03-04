@@ -26,14 +26,14 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <Grid Background="#90fcf9" Margin="178,36,56,36">
-                        <GroupBox Header="" Margin="5,0,5,10">
-                            <Label VerticalAlignment="Top" Background="#7699D4" Width="504" Height="276" Margin="10,0,0,0">
+                        <GroupBox Header="{Binding Name}" BorderBrush="Black" Margin="0,0,0,0">
+                            <Label  Background="#7699D4" Height="278" Margin="11,11,11,11">
                                 <Charting:Chart Height="233" Width="342" >
-                                    <Charting:BarSeries Title= "{Binding Name}"
+                                    <Charting:BarSeries Title= "{Binding Utilization}"
                                                         IndependentValueBinding="{Binding Path=Key}" 
                                                         DependentValueBinding="{Binding Path=Value}" 
                                                         ItemsSource="{Binding Roledata}">
-                                        
+
                                     </Charting:BarSeries>
                                 </Charting:Chart>
                             </Label>
