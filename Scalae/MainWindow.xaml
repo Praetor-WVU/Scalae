@@ -28,13 +28,15 @@
                     <Grid Background="#90fcf9" Margin="178,36,56,36">
                         <GroupBox Header="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" BorderBrush="Black" Margin="5,5,5,5">
                             <Label  Background="#7699D4" Height="278" Margin="2,2,2,2">
-                                <Charting:Chart Height="268" Width="422" Title="Test" HorizontalAlignment="Left" >
-                                    <Charting:BarSeries 
-                                                        IndependentValueBinding="{Binding Path=Key}" 
-                                                        DependentValueBinding="{Binding Path=Value}" 
-                                                        ItemsSource="{Binding Roledata}">
-
-                                    </Charting:BarSeries>
+                                <Charting:Chart Height="268" Width="422" Title="CPU Utilization" HorizontalAlignment="Left" x:Name="CpuChart">
+                                    <Charting:Chart.Series>
+                                        <Charting:ColumnSeries
+                                            Title="CPU %"
+                                            IndependentValuePath="Key"
+                                            DependentValuePath="Value"
+                                            x:Name="CpuSeries">
+                                        </Charting:ColumnSeries>
+                                    </Charting:Chart.Series>
                                 </Charting:Chart>
                             </Label>
 

@@ -15,9 +15,6 @@ namespace Scalae.ViewModels
     /// </summary>
     public class ViewModelMain : ViewModelBase
     {
-        private readonly Func<Task<IEnumerable<ClientMachine>>>? _loader;
-
-        public ObservableCollection<ClientMachine> Machines { get; } = new();
 
         private ClientMachine? _selectedMachine;
         public ClientMachine? SelectedMachine
@@ -26,6 +23,13 @@ namespace Scalae.ViewModels
             set => SetProperty(ref _selectedMachine, value);
         }
 
+
+        private readonly Func<Task<IEnumerable<ClientMachine>>>? _loader;
+
+        public ObservableCollection<ClientMachine> Machines { get; } = new();
+
+
+       
         private bool _isBusy;
         public bool IsBusy
         {

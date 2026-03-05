@@ -162,8 +162,26 @@ namespace Scalae
         private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) 
         {
             //Code to update the bargraphs with the data from the selected machine in the listbox.
-            
+            if (ListBoxMachines.SelectedItem is ClientMachine selectedMachine)
+            {
+                UpdateCpuChart(selectedMachine);
+            }
+        }
 
+        private void UpdateCpuChart(ClientMachine machine)
+        {
+            var chartData = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, double>>();
+
+            if (machine.LastCpuUtilization.HasValue)
+            {
+                chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("CPU Usage", machine.LastCpuUtilization.Value));
+            }
+            else
+            {
+                chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("CPU Usage", 0));
+            }
+
+            CpuSeries.ItemsSource = chartData;
         }
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { 
         
