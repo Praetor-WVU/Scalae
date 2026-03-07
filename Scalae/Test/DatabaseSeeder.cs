@@ -20,6 +20,26 @@ namespace Scalae.Data
             }
 
             var repo = new ClientMachineRepositoryEf(db);
+
+            // Use ClientDetection to get real MAC, IP, hostname, and OS info
+            var localMachine = ClientDetection.ClientDetectIP("localhost", timeoutMs: 2000);
+
+            var collector = new DataCollection();
+            var results = collector.CollectFull(localMachine);
+
+            // Populate the local machine with REAL collected data
+            localMachine.LastCpuModel = results[0][0];  // Hardware name
+            localMachine.LastCpuUtilization = double.TryParse(results[1][0].Replace("%", "").Replace("N/A", "-1"), out var cpu) ? cpu : -1;
+
+            localMachine.LastRamUtilization = double.TryParse(results[1][1].Replace("%", "").Replace("N/A", "-1"), out var ram) ? ram : -1;
+
+            localMachine.LastGpuModel = results[0][2];  // GPU hardware name
+            localMachine.LastGpuUtilization = double.TryParse(results[1][2].Replace("%", "").Replace("N/A", "-1"), out var gpu) ? gpu : -1;
+
+            localMachine.LastDataCollectionTime = DateTime.Now;
+
+            // Add the local machine with REAL data to the database
+            repo.Create(localMachine);
             var random = new Random();
 
             // CPU and GPU models for variety
@@ -92,5 +112,7 @@ namespace Scalae.Data
 
 
         }
+
+       
     }
 }
