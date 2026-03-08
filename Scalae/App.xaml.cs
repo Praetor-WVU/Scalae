@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Scalae.Data;
+using Scalae.Logging;
+using Scalae.Models;
 using Scalae.ViewModels;
 using System.Configuration;
 using System.Data;
@@ -19,6 +22,20 @@ namespace Scalae
             DatabaseSeeder.Seed();
 
             var serviceProvider = new ServiceCollection()
+                // Configure logging
+                .AddLogging(builder =>
+                {
+                    builder.AddDebug();      // Logs to Debug Output window
+                    builder.AddConsole();    // Logs to Console (if available)
+                    builder.SetMinimumLevel(LogLevel.Debug);
+                })
+                // Register ILoggingService implementation
+                .AddSingleton<ILoggingService, LoggingService>()
+                // Register Database_Context
+                .AddDbContext<Database_Context>()
+                // Register DataCollection with logging
+                .AddTransient<DataCollection>(sp => 
+                    new DataCollection(sp.GetRequiredService<ILoggingService>()))
                 .AddSingleton<ViewModelMain>(sp =>
                     new ViewModelMain(async () =>
                     {

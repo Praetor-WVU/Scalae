@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Scalae.Data.Repositories.EF;
+using Scalae.Logging;
 using Scalae.Models;
 using System;
 using System.Linq;
@@ -24,7 +26,16 @@ namespace Scalae.Data
             // Use ClientDetection to get real MAC, IP, hostname, and OS info
             var localMachine = ClientDetection.ClientDetectIP("localhost", timeoutMs: 2000);
 
-            var collector = new DataCollection();
+            // Create a temporary logger for seeding
+            using var loggerFactory = LoggerFactory.Create(builder => 
+            {
+                builder.AddDebug();
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+            var loggingService = new LoggingService(loggerFactory);
+            var collector = new DataCollection(loggingService);
+            
             var results = collector.CollectFull(localMachine);
 
             // Populate the local machine with REAL collected data

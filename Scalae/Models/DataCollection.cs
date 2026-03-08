@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Console;
+using Microsoft.Extensions.Logging.Debug;
 using Scalae.Logging;
 using System;
 using System.Collections.Generic;
@@ -12,6 +14,7 @@ namespace Scalae.Models
     public class DataCollection
     {
         private readonly ILogger<DataCollection> _logger;
+       
 
         // Accept the logging abstraction via constructor injection.
         public DataCollection(ILoggingService? loggingService = null)
