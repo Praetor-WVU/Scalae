@@ -48,11 +48,15 @@
                                     <Charting:Chart Grid.Column="0" Title="CPU Utilization" HorizontalAlignment="Left" x:Name="CpuChart" ScrollViewer.HorizontalScrollBarVisibility="Auto" Width="484">
                                         <Charting:Chart.Series>
                                             <Charting:ColumnSeries
-                                            Title="CPU %"
+                                            Title="Hardware %"
                                             IndependentValuePath="Key"
                                             DependentValuePath="Value"
-                                            x:Name="CpuSeries">
-                                            </Charting:ColumnSeries>
+                                            x:Name="HardwareSeries">
+                                            <!-- Set the range of the Y-axis to 0-100% -->
+                                            <Charting:ColumnSeries.DependentRangeAxis>
+                                                <Charting:LinearAxis Minimum="0" Maximum="100" Orientation="Y" ShowGridLines="True"/>
+                                            </Charting:ColumnSeries.DependentRangeAxis>
+                                        </Charting:ColumnSeries>
                                         </Charting:Chart.Series>
                                     </Charting:Chart>
                                     <!--<Label Content="Client"/>

@@ -163,6 +163,13 @@ namespace Scalae
                         existing.LastGpuModel = m.LastGpuModel;
                         existing.LastGpuUtilization = m.LastGpuUtilization;
                         existing.LastDataCollectionTime = m.LastDataCollectionTime;
+                        
+                        // NEW: Refresh chart if this is the currently selected machine
+                        if (ListBoxMachines.SelectedItem is ClientMachine selectedMachine && 
+                            selectedMachine.IPAddress == m.IPAddress)
+                        {
+                            UpdateChart(existing);
+                        }
                     }
                 });
             }
@@ -173,13 +180,15 @@ namespace Scalae
             //Code to update the bargraphs with the data from the selected machine in the listbox.
             if (ListBoxMachines.SelectedItem is ClientMachine selectedMachine)
             {
-                UpdateCpuChart(selectedMachine);
+                UpdateChart(selectedMachine);
             }
         }
 
-        private void UpdateCpuChart(ClientMachine machine)
+        private void UpdateChart(ClientMachine machine)
         {
             var chartData = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, double>>();
+
+            // Cpu bargraph data
 
             if (machine.LastCpuUtilization.HasValue)
             {
@@ -187,10 +196,32 @@ namespace Scalae
             }
             else
             {
-                chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("CPU Usage", 0));
+                chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("Usage", 0));
+
             }
 
-            CpuSeries.ItemsSource = chartData;
+            // Ram bargraph data
+            if (machine.LastRamUtilization.HasValue)
+            {
+                chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("RAM Usage", machine.LastRamUtilization.Value));
+            }
+            else
+            {
+                chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("Usage", 0));
+            }
+
+            // Gpu bargraph data
+
+            if (machine.LastCpuUtilization.HasValue)
+            {
+                chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("GPU Usage", machine.LastGpuUtilization.Value));
+            }
+            else
+            {
+                               chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("Usage", 0));
+            }
+
+                HardwareSeries.ItemsSource = chartData;
         }
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
     }
