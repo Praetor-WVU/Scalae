@@ -13,5 +13,6 @@ namespace Scalae.Interfaces
         bool Update(ClientMachine clientMachine);
 
         void Delete(ClientMachine clientMachine);
+        Task UpdateAsync(ClientMachine machine);
     }
 }

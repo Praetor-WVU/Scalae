@@ -2,6 +2,7 @@
 using Scalae.Data;
 using Scalae.Data.Repositories.EF;
 using Scalae.Models;
+using Scalae.Services;
 using Scalae.ViewModels;
 using System;
 using System.Collections.ObjectModel;
@@ -25,13 +26,14 @@ using System.Windows.Shapes;
 namespace Scalae
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Interaction logic for MainWindow.Xaml
     /// </summary>
     public partial class MainWindow : Window
     {
         // Database & collector fields (allow injection but preserve default behavior)
         private readonly Database_Context _db;
         private readonly DataCollection _collector;
+        private readonly MachineMonitoringService _monitoringService;
 
         private ObservableCollection<ClientMachine> _machines = new ObservableCollection<ClientMachine>();
 
@@ -51,6 +53,7 @@ namespace Scalae
         {
             _db = db ?? throw new ArgumentNullException(nameof(db));
             _collector = collector ?? throw new ArgumentNullException(nameof(collector));
+            _monitoringService = new MachineMonitoringService(new ClientMachineRepositoryEf(_db));
 
             InitializeComponent();
             InitializeWindow();
@@ -141,8 +144,8 @@ namespace Scalae
                 // run WMI-heavy work off the thread pool
                 String[][] data = await Task.Run(() => collector.CollectFull(m), token);
 
-                // update UI or database as needed. Example: refresh the ObservableCollection item (no properties currently to update).
-                // If you add properties for last-check results, update them on the UI thread:
+                // Use monitoring service to update and save
+                _monitoringService.UpdateAndSaveMetrics(m, data);
 
                 // Inside CollectOnceAsync after saving to DB
                 Dispatcher.Invoke(() =>
@@ -154,9 +157,15 @@ namespace Scalae
                     }
                     else {
                         // Update properties on `existing` if you extend ClientMachine with fields for last collection
+                        existing.LastCpuModel = m.LastCpuModel;
+                        existing.LastCpuUtilization = m.LastCpuUtilization;
+                        existing.LastRamUtilization = m.LastRamUtilization;
+                        existing.LastGpuModel = m.LastGpuModel;
+                        existing.LastGpuUtilization = m.LastGpuUtilization;
+                        existing.LastDataCollectionTime = m.LastDataCollectionTime;
                     }
                 });
-        }
+            }
         }
 
         private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) 
@@ -183,11 +192,6 @@ namespace Scalae
 
             CpuSeries.ItemsSource = chartData;
         }
-        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { 
-        
-        }
-
-       
-        
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
     }
 }

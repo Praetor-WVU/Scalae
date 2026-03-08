@@ -54,16 +54,16 @@
                         <GroupBox Margin="334,10,31,23">
                             <StackPanel>
                                 <Label Content="Client" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
-                                <TextBlock Text="Client Information" Height="45"/>
+                                <TextBlock Text="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" Height="45"/>
 
                                 <Label Content="CPU" FontSize="16" FontWeight="Bold"/>
-                                <TextBlock Text="CPU Information" Height="63"/>
+                                <TextBlock Text="{Binding SelectedItem.LastCpuModel, ElementName=ListBoxMachines}" Height="63" TextWrapping="Wrap"/>
 
                                 <Label Content="RAM" FontSize="16" FontWeight="Bold"/>
                                 <TextBlock Text="RAM Information" Height="46"/>
 
                                 <Label Content="GPU" FontSize="16" FontWeight="Bold"/>
-                                <TextBlock Text="GPU Information" Height="49"/>
+                                <TextBlock Text="{Binding SelectedItem.LastGpuModel, ElementName=ListBoxMachines}" Height="49" TextWrapping="Wrap"/>
 
                             </StackPanel>
                         </GroupBox>

@@ -4,6 +4,7 @@ using Scalae.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Scalae.Data.Repositories.EF
 {
@@ -44,6 +45,12 @@ namespace Scalae.Data.Repositories.EF
             {
                 return false;
             }
+        }
+
+        public async Task UpdateAsync(ClientMachine machine)
+        {
+            _context.ClientMachines.Update(machine);
+            await _context.SaveChangesAsync();
         }
 
         public void Delete(ClientMachine clientMachine)

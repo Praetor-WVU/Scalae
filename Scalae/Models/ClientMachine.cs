@@ -36,5 +36,6 @@ namespace Scalae.Models
             OperatingSystem = operatingSystem;
             IsActive = isActive;
         }
+
     }
 }
