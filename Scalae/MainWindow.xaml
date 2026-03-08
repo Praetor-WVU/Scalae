@@ -38,16 +38,16 @@
                         <GroupBox Header="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" BorderBrush="Black" Margin="5,5,5,5" IsEnabled="False" HorizontalContentAlignment="Stretch">
 
 
-                            <Grid Background="#7699D4">
+                            <Grid Background="#7699D4" Height="409">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width=".8*"/>
                                         <ColumnDefinition Width=".2*"/>
                                     </Grid.ColumnDefinitions>
-                                    
-                                    
-                                    <Charting:Chart Grid.Column="0" Title="CPU Utilization" HorizontalAlignment="Left" x:Name="CpuChart" ScrollViewer.HorizontalScrollBarVisibility="Auto" Width="484">
-                                        <Charting:Chart.Series>
-                                            <Charting:ColumnSeries
+
+
+                                <Charting:Chart Grid.Column="0" Title="CPU Utilization" HorizontalAlignment="Left" x:Name="CpuChart" ScrollViewer.HorizontalScrollBarVisibility="Auto" Width="484">
+                                    <Charting:Chart.Series>
+                                        <Charting:ColumnSeries
                                             Title="Hardware %"
                                             IndependentValuePath="Key"
                                             DependentValuePath="Value"
@@ -57,11 +57,9 @@
                                                 <Charting:LinearAxis Minimum="0" Maximum="100" Orientation="Y" ShowGridLines="True"/>
                                             </Charting:ColumnSeries.DependentRangeAxis>
                                         </Charting:ColumnSeries>
-                                        </Charting:Chart.Series>
-                                    </Charting:Chart>
-                                    <!--<Label Content="Client"/>
-                                    <TextBlock Content ="ClientInfo"/>-->
-                                    <StackPanel Grid.Column="1">
+                                    </Charting:Chart.Series>
+                                </Charting:Chart>
+                                <StackPanel Grid.Column="1">
                                     <Label Content="Client" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
                                     <TextBlock Text="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" Height="45"/>
 
