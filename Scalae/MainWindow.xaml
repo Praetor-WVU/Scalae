@@ -7,9 +7,13 @@
         xmlns:ScottPlot="clr-namespace:ScottPlot;assembly=ScottPlot"
         xmlns:Charting="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=DotNetProjects.DataVisualization.Toolkit"
         mc:Ignorable="d"
-        Title="Scalae" Background="#480355" Height="450" Width="800">
-    <Grid>
-        <TabControl Height="434" SelectionChanged="TabControl_SelectionChanged" Background="#9448bc">
+        Title="Scalae" Background="#480355" Height="618" Width="938">
+    <Grid ClipToBounds="True" Margin="0,0,0,67">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="877*"/>
+            <ColumnDefinition Width="534*"/>
+        </Grid.ColumnDefinitions>
+        <TabControl SelectionChanged="TabControl_SelectionChanged" Background="#9448bc" Grid.ColumnSpan="2" Margin="0,51,0,10">
             <TabItem Header="Tab 1" Height="22" Margin="1,1,-5,0" VerticalAlignment="Top">
                 <Grid Background="#7699d4" Height="387" Margin="10,0,10,0">
                     <!-- Named ListBox so code-behind can bind ItemsSource, I made it to where it read from the computer list might need to change where this si done for mvvm -->
@@ -25,22 +29,43 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <Grid Background="#90fcf9" Margin="178,36,56,36">
-                        <GroupBox Header="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" BorderBrush="Black" Margin="5,5,5,5">
-                            <Label  Background="#7699D4" Height="278" Margin="2,2,2,2">
-                                <Charting:Chart Height="268" Width="422" Title="CPU Utilization" HorizontalAlignment="Left" x:Name="CpuChart">
-                                    <Charting:Chart.Series>
-                                        <Charting:ColumnSeries
+                    <Grid Background="#90fcf9" Margin="185,0,0,0">
+
+                        <GroupBox Header="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" BorderBrush="Black" Margin="5,5,5,5" IsEnabled="False" HorizontalContentAlignment="Stretch">
+                            <Label  Background="#7699D4" Height="366" Margin="2,0,2,0">
+                                <StackPanel>
+                                    <Charting:Chart Height="166" Width="266" Title="CPU Utilization" HorizontalAlignment="Left" x:Name="CpuChart" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                        <Charting:Chart.Series>
+                                            <Charting:ColumnSeries
                                             Title="CPU %"
                                             IndependentValuePath="Key"
                                             DependentValuePath="Value"
                                             x:Name="CpuSeries">
-                                        </Charting:ColumnSeries>
-                                    </Charting:Chart.Series>
+                                            </Charting:ColumnSeries>
+                                        </Charting:Chart.Series>
                                     </Charting:Chart>
+                                    <!--<Label Content="Client"/>
+                                    <TextBlock Content ="ClientInfo"/>-->
+                                </StackPanel>
                             </Label>
 
 
+                        </GroupBox>
+                        <GroupBox Margin="334,10,31,23">
+                            <StackPanel>
+                                <Label Content="Client" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                                <TextBlock Text="Client Information" Height="45"/>
+
+                                <Label Content="CPU" FontSize="16" FontWeight="Bold"/>
+                                <TextBlock Text="CPU Information" Height="63"/>
+
+                                <Label Content="RAM" FontSize="16" FontWeight="Bold"/>
+                                <TextBlock Text="RAM Information" Height="46"/>
+
+                                <Label Content="GPU" FontSize="16" FontWeight="Bold"/>
+                                <TextBlock Text="GPU Information" Height="49"/>
+
+                            </StackPanel>
                         </GroupBox>
 
                     </Grid>
