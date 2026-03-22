@@ -40,7 +40,7 @@ namespace Scalae
         // timer fields
         private PeriodicTimer? _periodicTimer;
         private CancellationTokenSource? _timerCts;
-        private readonly TimeSpan _collectionInterval = TimeSpan.FromMinutes(.1);
+        private readonly TimeSpan _collectionInterval = TimeSpan.FromMinutes(.01);
         private readonly SemaphoreSlim _collectLock = new SemaphoreSlim(1, 1);
 
         // Default constructor preserves existing behavior
@@ -53,7 +53,7 @@ namespace Scalae
         {
             _db = db ?? throw new ArgumentNullException(nameof(db));
             _collector = collector ?? throw new ArgumentNullException(nameof(collector));
-            _monitoringService = new MachineMonitoringService(new ClientMachineRepositoryEf(_db));
+            _monitoringService = new MachineMonitoringService(new ClientMachineRepositoryEf(_db), new MachineHistoryRepositoryEf(_db));
 
             InitializeComponent();
             InitializeWindow();
@@ -135,7 +135,12 @@ namespace Scalae
         // One run of data-collection across known DB machines.
         private async Task CollectOnceAsync(DataCollection collector, CancellationToken token)
         {
-            var machines = _db.ClientMachines.AsNoTracking().ToList();
+            // Create a fresh DbContext and repository instances for the background collection run.
+            // DbContext (Database_Context) is not thread-safe and must not be shared between UI and background threads.
+            using var runDb = new Database_Context();
+            var runMonitoringService = new MachineMonitoringService(new Data.Repositories.EF.ClientMachineRepositoryEf(runDb), new Data.Repositories.EF.MachineHistoryRepositoryEf(runDb));
+
+            var machines = runDb.ClientMachines.AsNoTracking().ToList();
 
             foreach (var m in machines)
             {
@@ -144,10 +149,11 @@ namespace Scalae
                 // run WMI-heavy work off the thread pool
                 String[][] data = await Task.Run(() => collector.CollectFull(m), token);
 
-                // Use monitoring service to update and save
-                _monitoringService.UpdateAndSaveMetrics(m, data);
+                // Use monitoring service (backed by the fresh DbContext) to update and save
+                runMonitoringService.UpdateAndSaveMetrics(m, data);
 
-                // Inside CollectOnceAsync after saving to DB
+
+                // Update UI with the latest values from the collected machine
                 Dispatcher.Invoke(() =>
                 {
                     var existing = _machines.FirstOrDefault(x => x.IPAddress == m.IPAddress);
@@ -155,7 +161,8 @@ namespace Scalae
                     {
                         _machines.Add(m);
                     }
-                    else {
+                    else
+                    {
                         // Update properties on `existing` if you extend ClientMachine with fields for last collection
                         existing.LastCpuModel = m.LastCpuModel;
                         existing.LastCpuUtilization = m.LastCpuUtilization;
@@ -163,9 +170,9 @@ namespace Scalae
                         existing.LastGpuModel = m.LastGpuModel;
                         existing.LastGpuUtilization = m.LastGpuUtilization;
                         existing.LastDataCollectionTime = m.LastDataCollectionTime;
-                        
-                        // NEW: Refresh chart if this is the currently selected machine
-                        if (ListBoxMachines.SelectedItem is ClientMachine selectedMachine && 
+
+                        // Refresh chart if this is the currently selected machine
+                        if (ListBoxMachines.SelectedItem is ClientMachine selectedMachine &&
                             selectedMachine.IPAddress == m.IPAddress)
                         {
                             UpdateChart(existing);
@@ -218,7 +225,7 @@ namespace Scalae
             }
             else
             {
-                               chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("Usage", 0));
+                chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("Usage", 0));
             }
 
                 HardwareSeries.ItemsSource = chartData;
