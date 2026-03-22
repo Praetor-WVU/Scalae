@@ -12,6 +12,6 @@ namespace Scalae.Data
 
         // One DbSet per table
         public DbSet<ClientMachine> ClientMachines { get; set; } = default!;
-        
+        public DbSet<MachineHistory> MachineHistories { get; set; } = default!;
     }
 }

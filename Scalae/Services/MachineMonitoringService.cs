@@ -1,3 +1,4 @@
+using Scalae.Data;
 using Scalae.Data.Repositories.EF;
 using Scalae.Interfaces;
 using Scalae.Models;
@@ -23,6 +24,19 @@ namespace Scalae.Services
             if (machine == null) throw new ArgumentNullException(nameof(machine));
             if (collectedData == null || collectedData.Length < 2) 
                 throw new ArgumentException("Invalid collected data format", nameof(collectedData));
+
+           
+ 
+               
+                var history = new MachineHistory(
+                    machine.Name ?? "Unknown",
+                    machine.LastDataCollectionTime,
+                    machine.LastCpuUtilization,
+                    machine.LastGpuUtilization,
+                    machine.LastRamUtilization
+                );
+                var historyRepo = new MachineHistoryRepositoryEf(new Database_Context());
+                historyRepo.Create(history);
 
             machine.LastCpuModel = collectedData[0][0];
             machine.LastCpuUtilization = ParseUtilization(collectedData[1][0]);
