@@ -84,8 +84,16 @@
                 <Grid Background="Pink"/>
 
             </TabItem>
-            <TabItem Header="History" Margin=" 5,1,-9,0">
-                <Grid Background="Pink"/>
+            <TabItem Header="History" Margin=" 10,0,10,0">
+                <Grid Background="#7699d4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width=".1*"/>
+                        <ColumnDefinition Width=".9*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    
+
+                </Grid>
             </TabItem>
             <TabItem Header="Settings" Margin="5,1,-9,0">
                 <Grid Background="Pink"/>
