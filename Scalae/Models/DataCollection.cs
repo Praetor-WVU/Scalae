@@ -8,6 +8,8 @@ using System.Linq;
 using System.Management;
 using System.Text;
 using System.Threading;
+using System.Windows.Forms;
+using System.Xml.Linq;
 
 namespace Scalae.Models
 {
@@ -270,6 +272,7 @@ namespace Scalae.Models
 
                 var candidateQueries = new[]
                 {
+                    "SELECT Name, UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine",
                     "SELECT UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUPerf",
                     "SELECT UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters",
                     // Request all properties to avoid "Invalid query" when a property doesn't exist
