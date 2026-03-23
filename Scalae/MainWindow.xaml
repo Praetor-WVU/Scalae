@@ -14,7 +14,7 @@
             <ColumnDefinition Width="534*"/>
         </Grid.ColumnDefinitions>
         <TabControl SelectionChanged="TabControl_SelectionChanged" Background="#9448bc" Grid.ColumnSpan="2" Margin="20,20,20,20" Padding="10,10,10,10">
-            <TabItem Header="Client Info" Height="22" Margin="1,1,-5,0" VerticalAlignment="Top">
+            <TabItem Header="Client Info" Height="22" Margin="5,1,-9,0" VerticalAlignment="Top">
                 <Grid Background="#7699d4" Margin="10,0,10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width=".1*"/>
@@ -84,7 +84,7 @@
                 <Grid Background="Pink"/>
 
             </TabItem>
-            <TabItem Header="History" Margin=" 10,0,10,0">
+            <TabItem Header="History" Margin="5,1,-9,0">
                 <Grid Background="#7699d4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width=".1*"/>
