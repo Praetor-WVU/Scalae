@@ -26,7 +26,7 @@ namespace Scalae.Services
             if (collectedData == null || collectedData.Length < 2)
                 throw new ArgumentException("Invalid collected data format", nameof(collectedData));
 
-            CreateHistoryEntryAsync(machine);
+           
 
             machine.LastCpuModel = collectedData[0][0];
             machine.LastCpuUtilization = ParseUtilization(collectedData[1][0]);
@@ -36,6 +36,9 @@ namespace Scalae.Services
             machine.LastDataCollectionTime = DateTime.Now;
 
             _repository.Update(machine);
+ 
+            CreateHistoryEntryAsync(machine);
+
         }
 
         private static double ParseUtilization(string value)
