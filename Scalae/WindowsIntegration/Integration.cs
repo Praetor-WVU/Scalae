@@ -14,7 +14,7 @@ namespace Scalae.WindowsIntegration
     /// Represents a Windows Domain integration. Instances store domain connection info and provide
     /// helper methods to validate credentials and determine whether a user/machine is allowed.
     /// </summary>
-    internal class Integration
+    public class Integration
     {
         private readonly ILogger<Integration> _logger;
 
