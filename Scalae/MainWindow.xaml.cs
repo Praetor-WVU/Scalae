@@ -37,6 +37,9 @@ namespace Scalae
 
         private ObservableCollection<ClientMachine> _machines = new ObservableCollection<ClientMachine>();
 
+        // Not currently used in the UI, but could be exposed for a history view whenever necessary ui is updated to handle it
+        private ObservableCollection<MachineHistory> _machineHistory = new ObservableCollection<MachineHistory>();
+
         // timer fields
         private PeriodicTimer? _periodicTimer;
         private CancellationTokenSource? _timerCts;

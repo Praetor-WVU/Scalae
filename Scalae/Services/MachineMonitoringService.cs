@@ -1,15 +1,22 @@
+using Scalae.Data;
 using Scalae.Interfaces;
 using Scalae.Models;
 using System;
+using System.Collections.ObjectModel;
+using System.Data.Entity;
 using System.Diagnostics;
+using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 
 namespace Scalae.Services
 {
     public class MachineMonitoringService
     {
+        private readonly Database_Context _context;
         private readonly IClientMachineRepository _repository;
         private readonly IMachineHistoryRepository _historyRepository;
+        private ObservableCollection<MachineHistory> hist;
+
 
         public MachineMonitoringService(IClientMachineRepository repository, IMachineHistoryRepository historyRepository)
         {
@@ -68,5 +75,19 @@ namespace Scalae.Services
 
           
         }
+
+        //Call to retun a list of the history of a machine, used in the UI to display the history of a machine (returns entries for passed param name)
+        public ObservableCollection<MachineHistory> GetHistoryList(string name)
+        {
+            var list = _context.MachineHistories
+                .AsNoTracking()
+                .Where(h => h.Name == name)
+                .ToList();
+                hist = new ObservableCollection<MachineHistory>(list);
+
+            return hist;
+        }
+
+
     }
 }
