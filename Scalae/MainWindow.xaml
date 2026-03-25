@@ -44,8 +44,8 @@
 
                             <Grid Background="#7699D4" Margin="0,5,0,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width=".8*"/>
-                                    <ColumnDefinition Width=".2*"/>
+                                    <ColumnDefinition Width="0.8*"/>
+                                    <ColumnDefinition Width="0.2*"/>
                                 </Grid.ColumnDefinitions>
 
 
@@ -90,8 +90,8 @@
             <TabItem Header="History" Margin="5,1,-9,0">
                 <Grid Background="#7699d4" Margin="10,0,10,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width=".1*"/>
-                        <ColumnDefinition Width=".9*"/>
+                        <ColumnDefinition Width="0.1*"/>
+                        <ColumnDefinition Width="0.9*"/>
                     </Grid.ColumnDefinitions>
 
                     <ListBox Grid.Column="0" Background="#63b4d1" SelectionChanged="ListBox_SelectionChanged" Margin="0,0,0,0" MinWidth="0">
@@ -106,13 +106,17 @@
                     </ListBox>
                     <Grid Grid.Column="1" Background="#90fcf9" Margin="0,0,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width=".1*"/>
-                            <ColumnDefinition Width=".9*"/>
+                            <ColumnDefinition Width="0.1*"/>
+                            <ColumnDefinition Width="0.9*"/>
                         </Grid.ColumnDefinitions>
 
-                        <Viewbox Stretch="Uniform" Margin="38,0,588,342" Grid.ColumnSpan="2">
-                            <Calendar Margin="57,10,0,0"/>
-                        </Viewbox>
+
+                        <Calendar SelectionMode="SingleRange" Margin="-16,0,505,221" Grid.ColumnSpan="2">
+                            <Calendar.LayoutTransform>
+                                <ScaleTransform ScaleX="0.7" ScaleY="0.7"/>
+                            </Calendar.LayoutTransform>
+                        </Calendar>
+
 
                         <ComboBox Grid.Column="1"  Margin="124,10,523,418" IsEditable="False" SelectedIndex="0" MaxWidth="300" MaxHeight="50" MinWidth="200" MinHeight="50">
                             <ComboBoxItem Content="Hours"/>
@@ -121,37 +125,34 @@
                             <ComboBoxItem Content="Hour 3"/>
                         </ComboBox>
 
-                        <GroupBox Header="Selected machine" BorderBrush="Black" Margin="5,112,10,5" IsEnabled="False" HorizontalContentAlignment="Stretch" Grid.ColumnSpan="2">
-                            <!--
-                            <Canvas Background="white" Margin="10,0,444,0">
-                                
-                                <Line X1="0" Y1="300" X2="500" Y2="300" Stroke="Black" StrokeThickness="2"/>
-                                
-                                <Line X1="50" Y1="0" X2="50" Y2="300" Stroke="Black" StrokeThickness="2"/>
-                            </Canvas>-->
 
-                            <Polyline Stroke="Black" StrokeThickness="2" Points="50,250 100,200 150,180 200,150 250,120 300,100 350,80 400,60 450,50"/>
 
-                        </GroupBox>
+
+                        <Charting:Chart Height="299" Margin="37,139,0,11" HorizontalAlignment="Left" Width="609" Grid.ColumnSpan="2">
+                            <Charting:LineSeries Title="Utilization" IndependentValuePath="test" DependentValuePath="Value"/>
+                        </Charting:Chart>
+
+
+
                         <StackPanel Orientation="vertical" Margin="574,127,29,0" Grid.Column="1" >
                             <Label Content="Average" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Average info" Height="15" TextWrapping="Wrap"/>
-                            
+
                             <Label Content="Max Ram" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Max Ram" Height="15" TextWrapping="Wrap"/>
-                            
+
                             <Label Content="Min Ram" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Min RAM" Height="15" TextWrapping="Wrap"/>
-                            
+
                             <Label Content="Max CPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Max CPU" Height="15" TextWrapping="Wrap"/>
-                            
+
                             <Label Content="Min CPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Min CPU" Height="15" TextWrapping="Wrap"/>
-                            
+
                             <Label Content="Max GPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Max GPU" Height="15" TextWrapping="Wrap"/>
-                            
+
                             <Label Content="Min GPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Min GPU" Height="15" TextWrapping="Wrap"/>
                         </StackPanel>
@@ -163,7 +164,7 @@
             <TabItem Header="Detection" Margin="5,1,-9,0">
                 <Grid Background="Pink"/>
             </TabItem>
-            
+
             <TabItem Header="Settings" Margin="5,1,-9,0">
                 <Grid Background="Pink"/>
             </TabItem>
