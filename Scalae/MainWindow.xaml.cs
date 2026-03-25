@@ -233,6 +233,7 @@ namespace Scalae
 
                 HardwareSeries.ItemsSource = chartData;
         }
+
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
     }
 }

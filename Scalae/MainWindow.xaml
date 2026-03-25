@@ -4,7 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Scalae"
-        xmlns:ScottPlot="clr-namespace:ScottPlot;assembly=ScottPlot"
+        
+        
+        
         xmlns:Charting="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=DotNetProjects.DataVisualization.Toolkit"
         mc:Ignorable="d"
         Title="Scalae" Background="#480355" Height="618" Width="938">
@@ -87,7 +89,7 @@
                 <Grid Background="Pink"/>
 
             </TabItem>
-            <TabItem Header="History" Margin="5,1,-9,0">
+            <TabItem Header="History" Margin="5,1,-9,0" Height="21" VerticalAlignment="Top">
                 <Grid Background="#7699d4" Margin="10,0,10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="0.1*"/>
@@ -113,12 +115,12 @@
 
                         <Calendar SelectionMode="SingleRange" Margin="-16,0,505,221" Grid.ColumnSpan="2">
                             <Calendar.LayoutTransform>
-                                <ScaleTransform ScaleX="0.7" ScaleY="0.7"/>
+                                <ScaleTransform ScaleX="0.9" ScaleY="0.8"/>
                             </Calendar.LayoutTransform>
                         </Calendar>
 
 
-                        <ComboBox Grid.Column="1"  Margin="124,10,523,418" IsEditable="False" SelectedIndex="0" MaxWidth="300" MaxHeight="50" MinWidth="200" MinHeight="50">
+                        <ComboBox Grid.Column="1"  Margin="220,10,408,409" IsEditable="False" SelectedIndex="0" Width="65" Height="30">
                             <ComboBoxItem Content="Hours"/>
                             <ComboBoxItem Content="Hour 1"/>
                             <ComboBoxItem Content="Hour 2"/>
@@ -131,6 +133,11 @@
                         <Charting:Chart Height="299" Margin="37,139,0,11" HorizontalAlignment="Left" Width="609" Grid.ColumnSpan="2">
                             <Charting:LineSeries Title="Utilization" IndependentValuePath="test" DependentValuePath="Value"/>
                         </Charting:Chart>
+
+                        <!--<Canvas>
+                            <ScottPlot:WpfPlot x:Name="History"/>
+                        </Canvas>-->
+
 
 
 
