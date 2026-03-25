@@ -106,16 +106,16 @@
                     </ListBox>
                     <Grid Grid.Column="1" Background="#90fcf9" Margin="0,0,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="57*"/>
-                            <ColumnDefinition Width="713*"/>
+                            <ColumnDefinition Width=".1*"/>
+                            <ColumnDefinition Width=".9*"/>
                         </Grid.ColumnDefinitions>
 
                         <Viewbox Stretch="Uniform" Margin="38,0,588,342" Grid.ColumnSpan="2">
-                            <Calendar  Margin="57,10,0,0" />
+                            <Calendar Margin="57,10,0,0"/>
                         </Viewbox>
 
-                        <ComboBox Grid.Column="1"  Margin="124,10,523,418" IsEditable="False" SelectedIndex="0">
-                            <ComboBoxItem Content="Hours "/>
+                        <ComboBox Grid.Column="1"  Margin="124,10,523,418" IsEditable="False" SelectedIndex="0" MaxWidth="300" MaxHeight="50" MinWidth="200" MinHeight="50">
+                            <ComboBoxItem Content="Hours"/>
                             <ComboBoxItem Content="Hour 1"/>
                             <ComboBoxItem Content="Hour 2"/>
                             <ComboBoxItem Content="Hour 3"/>
@@ -136,16 +136,22 @@
                         <StackPanel Orientation="vertical" Margin="574,127,29,0" Grid.Column="1" >
                             <Label Content="Average" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Average info" Height="15" TextWrapping="Wrap"/>
+                            
                             <Label Content="Max Ram" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Max Ram" Height="15" TextWrapping="Wrap"/>
+                            
                             <Label Content="Min Ram" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Min RAM" Height="15" TextWrapping="Wrap"/>
+                            
                             <Label Content="Max CPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Max CPU" Height="15" TextWrapping="Wrap"/>
+                            
                             <Label Content="Min CPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Min CPU" Height="15" TextWrapping="Wrap"/>
+                            
                             <Label Content="Max GPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Max GPU" Height="15" TextWrapping="Wrap"/>
+                            
                             <Label Content="Min GPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
                             <TextBlock Text="Min GPU" Height="15" TextWrapping="Wrap"/>
                         </StackPanel>
