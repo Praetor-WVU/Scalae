@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.DataVisualization.Charting;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Forms;
@@ -30,6 +31,12 @@ namespace Scalae
     /// </summary>
     public partial class MainWindow : Window
     {
+
+        public List<DataPoint> RAMLine { get; set; }
+        public List<DataPoint> GPULine { get; set; }
+        public List<DataPoint> CPULine { get; set; }
+        //temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
+
         // Database & collector fields (allow injection but preserve default behavior)
         private readonly Database_Context _db;
         private readonly DataCollection _collector;
@@ -64,6 +71,32 @@ namespace Scalae
         // Shared initialization logic (keeps all original setup lines)
         private void InitializeWindow()
         {
+            RAMLine = new List<DataPoint>
+            {
+                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 56},
+                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 68},
+                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 73},
+            };
+
+            GPULine = new List<DataPoint>
+            {
+                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 89},
+                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 85},
+                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 83},
+            };
+
+            CPULine = new List<DataPoint>
+            {
+                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 87},
+                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 76},
+                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 80},
+            };
+
+            DataContext = this; // Bind data to XAML
+            //^ Temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
+
+
+
             // Ensure DB and tables exist
             _db.Database.EnsureCreated();
             this.SizeToContent = SizeToContent.WidthAndHeight;
@@ -236,4 +269,13 @@ namespace Scalae
 
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
     }
+
+    public class DataPoint
+    {
+        public string Date { get; set; }
+        public double Value { get; set; }
+    }
+
+    //^ Temporary class for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
+
 }

@@ -113,25 +113,27 @@
                         </Grid.ColumnDefinitions>
 
 
-                        <Calendar SelectionMode="SingleRange" Margin="-16,0,505,221" Grid.ColumnSpan="2">
+                        <Calendar SelectionMode="MultipleRange" Margin="-16,0,505,221" Grid.ColumnSpan="2">
                             <Calendar.LayoutTransform>
                                 <ScaleTransform ScaleX="0.9" ScaleY="0.8"/>
                             </Calendar.LayoutTransform>
                         </Calendar>
 
 
-                        <ComboBox Grid.Column="1"  Margin="220,10,408,409" IsEditable="False" SelectedIndex="0" Width="65" Height="30">
+                        <ComboBox Grid.Column="1"  Margin="148,10,475,409" IsEditable="False" SelectedIndex="0" Width="70" Height="30">
                             <ComboBoxItem Content="Hours"/>
-                            <ComboBoxItem Content="Hour 1"/>
-                            <ComboBoxItem Content="Hour 2"/>
-                            <ComboBoxItem Content="Hour 3"/>
+                            <ComboBoxItem Content="1 Hour"/>
+                            <ComboBoxItem Content="2 Hours"/>
+                            <ComboBoxItem Content="3 Hours"/>
                         </ComboBox>
 
 
 
 
                         <Charting:Chart Height="299" Margin="37,139,0,11" HorizontalAlignment="Left" Width="609" Grid.ColumnSpan="2">
-                            <Charting:LineSeries Title="Utilization" IndependentValuePath="test" DependentValuePath="Value"/>
+                            <Charting:LineSeries Title="RAM" IndependentValuePath="Date" DependentValuePath="Value" ItemsSource="{Binding RAMLine}"/>
+                            <Charting:LineSeries Title="GPU" IndependentValuePath="Date" DependentValuePath="Value" ItemsSource="{Binding GPULine}" />
+                            <Charting:LineSeries Title="GPU" IndependentValuePath="Date" DependentValuePath="Value" ItemsSource="{Binding CPULine}" />
                         </Charting:Chart>
 
                         <!--<Canvas>
@@ -143,25 +145,25 @@
 
                         <StackPanel Orientation="vertical" Margin="574,127,29,0" Grid.Column="1" >
                             <Label Content="Average" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
-                            <TextBlock Text="Average info" Height="15" TextWrapping="Wrap"/>
+                            <TextBlock Text="82" Height="15" TextWrapping="Wrap"/>
 
                             <Label Content="Max Ram" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
-                            <TextBlock Text="Max Ram" Height="15" TextWrapping="Wrap"/>
+                            <TextBlock Text="73" Height="15" TextWrapping="Wrap"/>
 
                             <Label Content="Min Ram" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
-                            <TextBlock Text="Min RAM" Height="15" TextWrapping="Wrap"/>
+                            <TextBlock Text="56" Height="15" TextWrapping="Wrap"/>
 
                             <Label Content="Max CPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
-                            <TextBlock Text="Max CPU" Height="15" TextWrapping="Wrap"/>
+                            <TextBlock Text="87" Height="15" TextWrapping="Wrap"/>
 
                             <Label Content="Min CPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
-                            <TextBlock Text="Min CPU" Height="15" TextWrapping="Wrap"/>
+                            <TextBlock Text="89" Height="15" TextWrapping="Wrap"/>
 
                             <Label Content="Max GPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
-                            <TextBlock Text="Max GPU" Height="15" TextWrapping="Wrap"/>
+                            <TextBlock Text="89" Height="15" TextWrapping="Wrap"/>
 
                             <Label Content="Min GPU" FontSize="14" FontWeight="Bold" Margin="0,0,20,0"/>
-                            <TextBlock Text="Min GPU" Height="15" TextWrapping="Wrap"/>
+                            <TextBlock Text="83" Height="15" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
