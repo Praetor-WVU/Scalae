@@ -73,8 +73,8 @@ namespace Scalae
         {
             RAMLine = new List<DataPoint>
             {
-                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 56},
-                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 68},
+                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 78},
+                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 87},
                 new DataPoint { Date = "3/25/26 - 14:00:00", Value = 73},
             };
 
@@ -82,7 +82,7 @@ namespace Scalae
             {
                 new DataPoint { Date = "2/24/26 - 12:00:00", Value = 89},
                 new DataPoint { Date = "2/24/26 - 13:00:00", Value = 85},
-                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 83},
+                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 77},
             };
 
             CPULine = new List<DataPoint>
