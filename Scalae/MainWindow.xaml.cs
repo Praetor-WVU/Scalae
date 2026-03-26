@@ -107,6 +107,7 @@ namespace Scalae
 
             // Bind the collection to the ListBox
             ListBoxMachines.ItemsSource = _machines;
+            ListBoxHistory.ItemsSource = _machines; 
 
             // Start the periodic collection loop, closes on main window close.
             StartPeriodicCollection();

@@ -96,12 +96,12 @@
                         <ColumnDefinition Width="0.9*"/>
                     </Grid.ColumnDefinitions>
 
-                    <ListBox Grid.Column="0" Background="#63b4d1" SelectionChanged="ListBox_SelectionChanged" Margin="0,0,0,0" MinWidth="0">
+                    <ListBox Grid.Column="0" x:Name="ListBoxHistory" Background="#63b4d1" SelectionChanged="ListBox_SelectionChanged" Margin="0,0,0,0" MinWidth="0">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Vertical" Margin="4">
-                                    <TextBlock Text="test" FontWeight="Bold"/>
-                                    <TextBlock Text="test" FontSize="12" Foreground="LightGray"/>
+                                    <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="LightGray"/>
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
