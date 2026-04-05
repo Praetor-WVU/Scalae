@@ -165,7 +165,43 @@
             </TabItem>
 
             <TabItem Header="Detection" Margin="5,1,-9,0">
-                <Grid Background="Pink"/>
+                <Grid Background="#7699d4" Margin="10,0,10,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.1*"/>
+                        <ColumnDefinition Width="0.9*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ListBox Grid.Column="0" x:Name="LBDetected" Background="#63b4d1" SelectionChanged="ListBox_SelectionChanged" Margin="0,0,724,63" MinWidth="0" Grid.ColumnSpan="2">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Vertical" Margin="4">
+                                    <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="LightGray"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+
+
+                    </ListBox>
+                    
+                    <Button Content="Accept" Margin="10,391,36,0" VerticalAlignment="Top"/>
+                    <Button Content="Blacklist" HorizontalAlignment="Left" Margin="55,391,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
+
+                    <ListBox Grid.Column="1" Background="#63b4d1" Margin="138,65,428,63" Width="205" Height="320"/>
+                    <ListBox Grid.Column="1" Background="#63b4d1" Margin="459,66,100,63" Height="320" Width="205"/>
+                    
+                    
+                    <Label Grid.Column="1" Content="Whitelist" HorizontalAlignment="Left" Margin="212,35,0,0" VerticalAlignment="Top"/>
+                    <Label Grid.Column="1" Content="Blacklist" HorizontalAlignment="Left" Margin="538,35,0,0" VerticalAlignment="Top"/>
+                    
+                    <Button Grid.Column="1" Content="Add" HorizontalAlignment="Left" Margin="138,391,0,0" VerticalAlignment="Top"/>
+                    <Button Grid.Column="1" Content="Sync" HorizontalAlignment="Left" Margin="168,391,0,0" VerticalAlignment="Top"/>
+                    <Button Grid.Column="1" Content="Remove" HorizontalAlignment="Left" Margin="204,391,0,0" VerticalAlignment="Top"/>
+                    <CheckBox Grid.Column="1" Content="Suspend" HorizontalAlignment="Left" Margin="256,393,0,0" VerticalAlignment="Top"/>
+
+
+
+                </Grid>
             </TabItem>
 
             <TabItem Header="Settings" Margin="5,1,-9,0">
