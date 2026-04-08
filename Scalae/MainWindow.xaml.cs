@@ -47,6 +47,10 @@ namespace Scalae
         // Not currently used in the UI, but could be exposed for a history view whenever necessary ui is updated to handle it
         private ObservableCollection<MachineHistory> _machineHistory = new ObservableCollection<MachineHistory>();
 
+        //Collections for white and black list
+        private ObservableCollection<WhiteList> _whiteList = new ObservableCollection<WhiteList>();
+        private ObservableCollection<BlackList> _blackList = new ObservableCollection<BlackList>();
+
         // timer fields
         private PeriodicTimer? _periodicTimer;
         private CancellationTokenSource? _timerCts;
@@ -107,7 +111,8 @@ namespace Scalae
 
             // Bind the collection to the ListBox
             ListBoxMachines.ItemsSource = _machines;
-            ListBoxHistory.ItemsSource = _machines; 
+            ListBoxHistory.ItemsSource = _machines;
+
 
             // Start the periodic collection loop, closes on main window close.
             StartPeriodicCollection();
@@ -213,19 +218,22 @@ namespace Scalae
                         {
                             UpdateChart(existing);
                         }
+
+
                     }
                 });
 
             }
         }
 
-        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) 
+        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             //Code to update the bargraphs with the data from the selected machine in the listbox.
             if (ListBoxMachines.SelectedItem is ClientMachine selectedMachine)
             {
                 UpdateChart(selectedMachine);
             }
+
         }
 
         private void UpdateChart(ClientMachine machine)
@@ -265,18 +273,46 @@ namespace Scalae
                 chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("Usage", 0));
             }
 
-                HardwareSeries.ItemsSource = chartData;
+            HardwareSeries.ItemsSource = chartData;
         }
 
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
+
+        private void ListBoxHistory_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ListBoxHistory.SelectedItem is ClientMachine selectedMachine)
+            {
+                _machineHistory = _monitoringService.GetHistoryList(selectedMachine.Name);
+                
+                
+                // Needs formatting 
+
+                    MaxCpuUtilization.Text = _machineHistory.Max(h => h.CpuUtilization ?? 0).ToString();
+                    MaxRamUtilization.Text = _machineHistory.Max(h => h.RamUtilization ?? 0).ToString();
+                    MaxGpuUtilization.Text = _machineHistory.Max(h => h.GpuUtilization ?? 0).ToString();
+
+                    MinCpuUtilization.Text = _machineHistory.Min(h => h.CpuUtilization ?? 0).ToString();
+                    MinRamUtilization.Text = _machineHistory.Min(h => h.RamUtilization ?? 0).ToString();
+                    MinGpuUtilization.Text = _machineHistory.Min(h => h.GpuUtilization ?? 0).ToString();
+
+                    AverageCpuUtilization.Text = _machineHistory.Average(h => h.CpuUtilization ?? 0).ToString();
+                    AverageRamUtilization.Text = _machineHistory.Average(h => h.RamUtilization ?? 0).ToString();
+                    AverageGpuUtilization.Text = _machineHistory.Average(h => h.GpuUtilization ?? 0).ToString();
+
+
+            }
+                
+        }
+
+       
+
+        public class DataPoint
+        {
+            public string Date { get; set; }
+            public double Value { get; set; }
+        }
+
+        //^ Temporary class for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
+
     }
-
-    public class DataPoint
-    {
-        public string Date { get; set; }
-        public double Value { get; set; }
-    }
-
-    //^ Temporary class for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
-
 }
