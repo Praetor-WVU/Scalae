@@ -19,7 +19,7 @@ namespace Scalae.Data.Repositories.EF
             _context.Database.EnsureCreated();
         }
 
-        public IEnumerable<ClientMachine> List() =>
+        public IEnumerable<ClientMachine> GetAll() =>
             _context.ClientMachines.AsNoTracking().ToList();
 
         public ClientMachine? GetById(int id) =>

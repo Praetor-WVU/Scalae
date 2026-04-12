@@ -14,5 +14,6 @@ namespace Scalae.Interfaces
 
         void Delete(ClientMachine clientMachine);
         Task UpdateAsync(ClientMachine machine);
+        IEnumerable<ClientMachine> GetAll(); 
     }
 }

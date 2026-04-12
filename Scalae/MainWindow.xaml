@@ -5,11 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Scalae"
         
-        
-        
         xmlns:Charting="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=DotNetProjects.DataVisualization.Toolkit"
         mc:Ignorable="d"
-        Title="Scalae" Background="#480355" Height="618" Width="938">
+        Title="Scalae" Background="#480355" Height="618" Width="938" MinHeight="600" MinWidth="600">
     <Grid ClipToBounds="True" Margin="0,0,0,67">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="877*"/>
@@ -111,8 +109,7 @@
                             <ColumnDefinition Width="0.1*"/>
                             <ColumnDefinition Width="0.9*"/>
                         </Grid.ColumnDefinitions>
-
-
+                            
                         <Calendar IsTodayHighlighted="False" SelectionMode="MultipleRange" Margin="-16,0,505,221" Grid.ColumnSpan="2">
                             <Calendar.LayoutTransform>
                                 <ScaleTransform ScaleX="0.9" ScaleY="0.8"/>
@@ -165,39 +162,108 @@
             <TabItem Header="Detection" Margin="5,1,-9,0">
                 <Grid Background="#7699d4" Margin="10,0,10,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="0.1*"/>
-                        <ColumnDefinition Width="0.9*"/>
+                        <ColumnDefinition Width="0.34*"/>
+                        <ColumnDefinition Width="0.33*"/>
+                        <ColumnDefinition Width="0.33*"/>
                     </Grid.ColumnDefinitions>
-
-                    <ListBox Grid.Column="0" x:Name="LBDetected" Background="#63b4d1" SelectionChanged="ListBox_SelectionChanged" Margin="0,0,724,63" MinWidth="0" Grid.ColumnSpan="2">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Vertical" Margin="4">
-                                    <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                    <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="LightGray"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="0.90*"/>
+                        <RowDefinition Height="0.10*"/>
+                    </Grid.RowDefinitions>
 
 
-                    </ListBox>
-                    
-                    <Button Content="Accept" Margin="10,391,36,0" VerticalAlignment="Top"/>
-                    <Button Content="Blacklist" HorizontalAlignment="Left" Margin="55,391,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
-
-                    <ListBox x:Name="LBWhitelist" Grid.Column="1" Background="#63b4d1" Margin="138,65,428,63" Width="205" Height="320"/>
-                    <ListBox x:Name="LBBlacklist" Grid.Column="1" Background="#63b4d1" Margin="459,66,100,63" Height="320" Width="205"/>
-                    
-                    
-                    <Label Grid.Column="1" Content="Whitelist" HorizontalAlignment="Left" Margin="212,35,0,0" VerticalAlignment="Top"/>
-                    <Label Grid.Column="1" Content="Blacklist" HorizontalAlignment="Left" Margin="538,35,0,0" VerticalAlignment="Top"/>
-                    
-                    <Button Grid.Column="1" Content="Add" HorizontalAlignment="Left" Margin="138,391,0,0" VerticalAlignment="Top"/>
-                    <Button Grid.Column="1" Content="Sync" HorizontalAlignment="Left" Margin="168,391,0,0" VerticalAlignment="Top"/>
-                    <Button Grid.Column="1" Content="Remove" HorizontalAlignment="Left" Margin="204,391,0,0" VerticalAlignment="Top"/>
-                    <CheckBox Grid.Column="1" Content="Suspend" HorizontalAlignment="Left" Margin="256,393,0,0" VerticalAlignment="Top"/>
 
 
+                    <Grid Grid.Column="0" Margin="20,0,20,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <ListBox x:Name="LBDetected" Grid.Row="0" Background="#63b4d1" SelectionChanged="ListBox_SelectionChanged">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Vertical" Margin="4">
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="LightGray"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="Scan Network" Click="BtnScanNetwork_Click" Height="30"/>
+                            <Button Grid.Column="1" Content="Accept" Click="BtnAccept_Click" Height="30"/>
+                            <Button Grid.Column="2" Content="Blacklist" Click="BtnBlacklist_Click" Height="30"/>
+                        </Grid>
+                    </Grid>
+                    <Grid Grid.Column="1" Margin="20,0,20,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.25*"/>
+                                <ColumnDefinition Width="0.25*"/>
+                                <ColumnDefinition Width="0.25*"/>
+                                <ColumnDefinition Width="0.25*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                            <RowDefinition Height="0.1*"/>
+                            <RowDefinition Height="0.8*"/>                            
+                            <RowDefinition Height="0.1*"/>
+                            </Grid.RowDefinitions>
+                        
+                        <Label Content="Whitelist"  Grid.Row="0"/>
+                        <Grid Grid.Row="1" Grid.ColumnSpan="4">
+                           
+                            <ListBox x:Name="LBWhitelist" Background="#63b4d1" Grid.ColumnSpan="4" Grid.Row="1"/>
+                        </Grid>
+                        <Grid Grid.Row="2" Grid.ColumnSpan="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Add" Height="30"/>
+                                <Button Grid.Column="1" Content="Sync" Height="30"/>
+                                <Button Grid.Column="2" Content="Remove" Height="30"/>
+                            <CheckBox Grid.Column="3" Content="Suspend" Height="30"/>
+                        </Grid>
+                    </Grid>
+
+
+
+                    <Grid Grid.Column="2" Grid.ColumnSpan="4" Margin="20,0,20,0">
+                            <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="0.25*"/>
+                                    <ColumnDefinition Width="0.25*"/>
+                                    <ColumnDefinition Width="0.25*"/>
+                                    <ColumnDefinition Width="0.25*"/>
+                                </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="0.1*"/>
+                            <RowDefinition Height="0.8*"/>
+                            <RowDefinition Height="0.1*"/>
+                        </Grid.RowDefinitions>
+                        <Label Content="Blacklist" Grid.Row="0"/>
+                        
+                        <ListBox x:Name="LBBlacklist" Background="#63b4d1" Grid.ColumnSpan="4" Grid.Row="1"/>
+                        
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                                
+                        </Grid>
+                    </Grid>
+                   
 
                 </Grid>
             </TabItem>
@@ -207,4 +273,5 @@
             </TabItem>
         </TabControl>
     </Grid>
+    
 </Window>

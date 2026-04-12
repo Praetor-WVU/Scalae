@@ -112,7 +112,7 @@ namespace Scalae
             // Bind the collection to the ListBox
             ListBoxMachines.ItemsSource = _machines;
             ListBoxHistory.ItemsSource = _machines;
-
+            LBDetected.ItemsSource = _detectedMachines;
 
             // Start the periodic collection loop, closes on main window close.
             StartPeriodicCollection();
@@ -264,7 +264,7 @@ namespace Scalae
 
             // Gpu bargraph data
 
-            if (machine.LastCpuUtilization.HasValue)
+            if (machine.LastGpuUtilization.HasValue)
             {
                 chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("GPU Usage", machine.LastGpuUtilization.Value));
             }
@@ -314,5 +314,132 @@ namespace Scalae
 
         //^ Temporary class for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
 
+        private ObservableCollection<ClientMachine> _detectedMachines = new ObservableCollection<ClientMachine>();
+
+        private async void BtnScanNetwork_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Disable button during scan
+                var button = (System.Windows.Controls.Button)sender;
+                button.IsEnabled = false;
+                button.Content = "Scanning...";
+
+                // Clear previous detection results
+                _detectedMachines.Clear();
+
+                // Run network discovery on background thread
+                var discovered = await Task.Run(() => ClientDetection.ClientDetectAuto(timeoutMs: 5000));
+
+                // Filter out machines already in the database
+                var newMachines = _monitoringService.newMachineVerify(discovered);
+
+                // Add new machines to the detected list
+                foreach (var machine in newMachines)
+                {
+                    _detectedMachines.Add(machine);
+                }
+
+                // Show message if no new machines found
+                if (_detectedMachines.Count == 0)
+                {
+                    System.Windows.MessageBox.Show(
+                        "No new machines detected on the network.", 
+                        "Scan Complete", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"Error during network scan: {ex.Message}", 
+                    "Scan Error", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                // Re-enable button
+                var button = (System.Windows.Controls.Button)sender;
+                button.IsEnabled = true;
+                button.Content = "Scan Network";
+            }
+        }
+
+        private void BtnAccept_Click(object sender, RoutedEventArgs e)
+        {
+            if (LBDetected.SelectedItem is ClientMachine selectedMachine)
+            {
+                try
+                {
+                    // Add to whitelist (saves to database)
+                    _monitoringService.AddToWhitelist(selectedMachine);
+
+                    // Add to main machines collection for monitoring
+                    _machines.Add(selectedMachine);
+
+                    // Remove from detected list
+                    _detectedMachines.Remove(selectedMachine);
+
+                    System.Windows.MessageBox.Show(
+                        $"Machine '{selectedMachine.Name}' added to monitoring list.", 
+                        "Machine Added", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Error adding machine: {ex.Message}", 
+                        "Error", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    "Please select a machine from the detected list.", 
+                    "No Selection", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        private void BtnBlacklist_Click(object sender, RoutedEventArgs e)
+        {
+            if (LBDetected.SelectedItem is ClientMachine selectedMachine)
+            {
+                try
+                {
+                    // For now, just remove from detected list
+                    // TODO: Implement blacklist repository to persist blacklisted machines
+                    _detectedMachines.Remove(selectedMachine);
+
+                    System.Windows.MessageBox.Show(
+                        $"Machine '{selectedMachine.Name}' blacklisted.", 
+                        "Machine Blacklisted", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Error blacklisting machine: {ex.Message}", 
+                        "Error", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    "Please select a machine from the detected list.", 
+                    "No Selection", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Warning);
+            }
+        }
     }
 }
