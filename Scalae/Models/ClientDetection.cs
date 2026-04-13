@@ -14,11 +14,23 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
+using System.ComponentModel;
+using System.Security.Principal;
+using System.Security.Permissions;
+using Microsoft.Win32.SafeHandles;
+using System.Runtime.ConstrainedExecution;
+using System.Security;
 
 namespace Scalae.Models
 {
    public class ClientDetection
     {
+        // Default credentials that callers can set to feed into detection APIs when explicit
+        // username/password are not provided to the individual methods.
+        public static string? DefaultRunAsUsername { get; set; } = "Charles Evans";
+        public static string? DefaultRunAsPassword { get; set; } = "M1cro2003&";
+
         private readonly ILogger<ClientDetection> _logger;
         // Add a static logger for use inside static methods
         private static readonly ILogger<ClientDetection> _staticLogger = NullLogger<ClientDetection>.Instance;
@@ -33,9 +45,21 @@ namespace Scalae.Models
         private const string DiscoveryRequest = "SCALAE_DISCOVER_v1";
         private const string DiscoveryResponsePrefix = "SCALAE_RESPONSE_v1|";
 
+        // NetServerEnum constants for workstation enumeration
+        private const uint SV_TYPE_WORKSTATION = 0x00000001;
+        private const int NERR_Success = 0;
+
+        // LogonUser constants for impersonation
+        private const int LOGON32_LOGON_NEW_CREDENTIALS = 9;
+        private const int LOGON32_PROVIDER_WINNT50 = 3;
+
         // Public simple APIs
         public static ClientMachine ClientDetectIP(string ipAddress, string? username = null, string? password = null, int timeoutMs = 1000)
         {
+            // Use configured defaults when explicit credentials are not supplied
+            username ??= DefaultRunAsUsername;
+            password ??= DefaultRunAsPassword;
+
             if (string.IsNullOrWhiteSpace(ipAddress))
             {
                 _staticLogger.LogError("IP address is required for IP-based detection");
@@ -102,6 +126,13 @@ namespace Scalae.Models
                     Authentication = AuthenticationLevel.Default
                 };
 
+                // If username/password are provided they should be in the form:
+                //   domain\\username OR machineName\\username
+                // and the password for that account. The account must have remote admin privileges
+                // on the target host (local Administrators or equivalent domain account) for WMI queries
+                // to succeed. If the target is in a domain, a domain account with appropriate rights
+                // should be used. Note: WMI over DCOM uses the credentials provided in ConnectionOptions;
+                // these are the only credentials that will be used for the remote WMI connection.
                 if (!string.IsNullOrWhiteSpace(username))
                 {
                     options.Username = username;
@@ -219,15 +250,78 @@ namespace Scalae.Models
 
         // Broadcast-based discovery: send UDP broadcasts and gather responses from clients/agents that implement the discovery protocol.
         // Returns zero or more discovered ClientMachine entries.
-        public static IEnumerable<ClientMachine> ClientDetectAuto(int timeoutMs = 3000)
+        public static IEnumerable<ClientMachine> ClientDetectAuto(int timeoutMs = 3000, string? username = null, string? password = null)
         {
             var discovered = new ConcurrentDictionary<string, ClientMachine>(StringComparer.OrdinalIgnoreCase);
 
             // Prepare request bytes
             var requestBytes = Encoding.UTF8.GetBytes(DiscoveryRequest);
 
-            using var udp = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+            // Bind the listener to the discovery port so replies addressed to port 37020 are received.
+            // Create a socket and enable address reuse before binding to avoid races on some platforms.
+            Socket? listenerSocket = null;
+            var candidates = new List<IPAddress> { IPAddress.Any };
+            try
+            {
+                candidates.AddRange(NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(n => n.OperationalStatus == OperationalStatus.Up &&
+                                n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                    .SelectMany(n => n.GetIPProperties().UnicastAddresses
+                        .Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork)
+                        .Select(u => u.Address)));
+            }
+            catch { /* ignore enumeration failures */ }
+
+            foreach (var addr in candidates.Distinct())
+            {
+                Socket? s = null;
+                try
+                {
+                    s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                    s.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                    s.Bind(new IPEndPoint(addr, DiscoveryPort));
+                    listenerSocket = s;
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    try { Debug.WriteLine($"Bind to {addr}:{DiscoveryPort} failed: {ex.Message}"); } catch { }
+                    _staticLogger.LogDebug(ex, "Bind to {Addr}:{Port} failed", addr, DiscoveryPort);
+                    s?.Dispose();
+                }
+            }
+
+            if (listenerSocket == null)
+            {
+                try { Debug.WriteLine($"Falling back to ephemeral port (no bind to {DiscoveryPort} succeeded)"); } catch { }
+                _staticLogger.LogWarning("Failed to bind discovery port {Port} on all interfaces; falling back to ephemeral port.", DiscoveryPort);
+            }
+
+            UdpClient udpClient;
+            if (listenerSocket != null)
+            {
+                udpClient = new UdpClient();
+                udpClient.Client = listenerSocket; // attach existing bound socket
+            }
+            else
+            {
+                udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+            }
+            using var udp = udpClient;
             udp.EnableBroadcast = true;
+
+            // Diagnostic: log which local endpoint we're listening on and whether we successfully bound to DiscoveryPort
+            try
+            {
+                _staticLogger.LogInformation("Discovery listener local endpoint: {EP}; boundToDiscoveryPort={Bound}", udp.Client.LocalEndPoint, listenerSocket != null);
+                try { Debug.WriteLine($"Discovery listener local endpoint: {udp.Client.LocalEndPoint}; boundToDiscoveryPort={listenerSocket != null}"); } catch { }
+            }
+            catch (Exception ex)
+            {
+                // Ensure logging doesn't interfere with discovery; swallow any logging exceptions
+                _staticLogger.LogDebug(ex, "Failed to log discovery listener endpoint");
+                try { Debug.WriteLine($"Failed to log discovery listener endpoint: {ex}"); } catch { }
+            }
 
             // Send to global broadcast
             try
@@ -303,6 +397,21 @@ namespace Scalae.Models
                         if (resp.Length <= 64) name = resp;
                     }
 
+                    // If responder echoed back the discovery request (or provided no useful name), try reverse DNS
+                    if (string.IsNullOrWhiteSpace(name) || name.Equals(DiscoveryRequest, StringComparison.Ordinal))
+                    {
+                        try
+                        {
+                            var entry = Dns.GetHostEntry(ip);
+                            if (!string.IsNullOrWhiteSpace(entry?.HostName))
+                                name = entry.HostName;
+                        }
+                        catch
+                        {
+                            // ignore DNS failures; keep existing name (may be null or the raw response)
+                        }
+                    }
+
                     // If MAC not provided, try ARP table
                     if (string.IsNullOrWhiteSpace(mac))
                     {
@@ -336,7 +445,224 @@ namespace Scalae.Models
                 }
             }
 
+            // On Windows, augment UDP/broadcast discovery with NetServerEnum to ensure we only
+            // collect workstation-class machines (desktops/laptops). NetServerEnum does not
+            // accept credentials directly; if domain enumeration requires specific permissions
+            // the process must be run under an account that has the rights to enumerate the
+            // domain (for example a domain account). See comments in "GetWorkstationsViaNetServerEnum"
+            // for more details.
+            try
+            {
+                var workstationNames = GetWorkstationsViaNetServerEnum(username, password);
+                if (workstationNames.Count > 0)
+                {
+                    // Filter discovered entries to only include those that match workstation names
+                    var filtered = discovered.Values.Where(cm =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(cm.Name) && workstationNames.Contains(cm.Name, StringComparer.OrdinalIgnoreCase))
+                            return true;
+                        // also try resolve IP to hostname
+                        if (!string.IsNullOrWhiteSpace(cm.IPAddress))
+                        {
+                            try
+                            {
+                                var he = Dns.GetHostEntry(cm.IPAddress);
+                                if (!string.IsNullOrWhiteSpace(he?.HostName) && workstationNames.Contains(he.HostName, StringComparer.OrdinalIgnoreCase))
+                                    return true;
+                            }
+                            catch { }
+                        }
+                        return false;
+                    }).ToList();
+
+                    // Add any workstation names not seen via UDP by attempting a DNS resolve + IP check
+                    foreach (var name in workstationNames)
+                    {
+                        if (filtered.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase)))
+                            continue;
+                        try
+                        {
+                            var entry = Dns.GetHostEntry(name);
+                            var addr = entry?.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+                            if (addr != null)
+                            {
+                                // Pass through credentials so WMI queries inside ClientDetectIP can use them
+                                var cm = ClientDetectIP(addr.ToString(), username, password);
+                                filtered.Add(cm);
+                            }
+                        }
+                        catch { }
+                    }
+
+                    return filtered.OrderBy(d => d.IPAddress ?? string.Empty).ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                _staticLogger.LogDebug(ex, "NetServerEnum workstation augmentation failed; returning UDP-discovered entries");
+            }
+
             return discovered.Values.OrderBy(d => d.IPAddress ?? string.Empty).ToArray();
+        }
+
+        // Use NetServerEnum to get a list of workstation names on the current domain/segment.
+        // This method returns host names for servers that have the SV_TYPE_WORKSTATION bit set.
+        // Note about credentials: NetServerEnum does not accept explicit username/password parameters.
+        // If enumeration of a domain requires credentials, run this process under an account
+        // that has permission to enumerate the domain (for example, a domain user). If you need
+        // to use explicit alternate credentials you must perform impersonation prior to calling
+        // this function or use other APIs that accept credentials.
+        private static HashSet<string> GetWorkstationsViaNetServerEnum(string? runAsUsername = null, string? runAsPassword = null)
+        {
+            // Prefer explicit params but fall back to configured defaults
+            runAsUsername = string.IsNullOrWhiteSpace(runAsUsername) ? DefaultRunAsUsername : runAsUsername;
+            runAsPassword = runAsPassword ?? DefaultRunAsPassword;
+
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            IntPtr token = IntPtr.Zero;
+            SafeAccessTokenHandle? safeHandle = null;
+            try
+            {
+                // If credentials provided, attempt LogonUser and impersonation
+                if (!string.IsNullOrWhiteSpace(runAsUsername) && runAsPassword != null)
+                {
+                    var domain = ".";
+                    var user = runAsUsername;
+                    var idx = runAsUsername.IndexOf('\\');
+                    if (idx > 0)
+                    {
+                        domain = runAsUsername.Substring(0, idx);
+                        user = runAsUsername.Substring(idx + 1);
+                    }
+
+                    var ok = LogonUser(user, domain, runAsPassword, LOGON32_LOGON_NEW_CREDENTIALS, LOGON32_PROVIDER_WINNT50, out token);
+                    if (!ok)
+                    {
+                        var err = Marshal.GetLastWin32Error();
+                        _staticLogger.LogWarning("LogonUser failed with error {Err} for user {User}; continuing without impersonation", err, runAsUsername);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            // Transfer ownership of the raw token into a SafeAccessTokenHandle to ensure safe cleanup.
+                            safeHandle = new SafeAccessTokenHandle(token);
+                            // Prevent double-close: mark the raw token as transferred
+                            token = IntPtr.Zero;
+                        }
+                        catch (Exception ex)
+                        {
+                            _staticLogger.LogWarning(ex, "Failed to create SafeAccessTokenHandle for user {User}; continuing without impersonation", runAsUsername);
+                            try { if (token != IntPtr.Zero) CloseHandle(token); } catch { }
+                            token = IntPtr.Zero;
+                            safeHandle = null;
+                        }
+                    }
+                }
+
+                // NetServerEnum signature (level 101) via P/Invoke
+                IntPtr bufPtr = IntPtr.Zero;
+                try
+                {
+                    int entriesRead = 0;
+                    int totalEntries = 0;
+
+                    // Wrap NetServerEnum call in impersonation if we have a safe handle
+                    Action doEnum = () =>
+                    {
+                        // servername = null for local computer domain; domain can be provided if desired
+                        int rc = NetServerEnum(null, 101, out bufPtr, -1, out entriesRead, out totalEntries, SV_TYPE_WORKSTATION, null, IntPtr.Zero);
+                        if (rc != NERR_Success || bufPtr == IntPtr.Zero || entriesRead == 0)
+                        {
+                            return;
+                        }
+
+                        var structSize = Marshal.SizeOf(typeof(SERVER_INFO_101));
+                        var current = bufPtr;
+                        for (int i = 0; i < entriesRead; i++)
+                        {
+                            var si = (SERVER_INFO_101)Marshal.PtrToStructure(current, typeof(SERVER_INFO_101))!;
+                            if (!string.IsNullOrWhiteSpace(si.sv101_name))
+                            {
+                                // Only add if the type includes workstation bit
+                                if ((si.sv101_type & SV_TYPE_WORKSTATION) == SV_TYPE_WORKSTATION)
+                                    result.Add(si.sv101_name);
+                            }
+                            current = IntPtr.Add(current, structSize);
+                        }
+                    };
+
+                    if (safeHandle != null)
+                    {
+                        WindowsIdentity.RunImpersonated(safeHandle, doEnum);
+                    }
+                    else
+                    {
+                        doEnum();
+                    }
+                }
+                finally
+                {
+                    if (bufPtr != IntPtr.Zero)
+                        NetApiBufferFree(bufPtr);
+                }
+            }
+            finally
+            {
+                // Ensure safe handle is disposed and native token closed if not transferred.
+                try
+                {
+                    safeHandle?.Dispose();
+                }
+                catch { }
+
+                if (token != IntPtr.Zero)
+                {
+                    try { CloseHandle(token); } catch { }
+                }
+            }
+
+             _staticLogger.LogInformation("NetServerEnum returned {Count} workstation entries", result.Count);
+             return result;
+         }
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool LogonUser(
+            string lpszUsername,
+            string lpszDomain,
+            string lpszPassword,
+            int dwLogonType,
+            int dwLogonProvider,
+            out IntPtr phToken);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("Netapi32", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern int NetServerEnum(
+             [MarshalAs(UnmanagedType.LPWStr)] string servername,
+             int level,
+             out IntPtr bufptr,
+             int prefmaxlen,
+             out int entriesread,
+             out int totalentries,
+             uint servertype,
+             [MarshalAs(UnmanagedType.LPWStr)] string domain,
+             IntPtr resume_handle);
+
+        [DllImport("Netapi32.dll")]
+        private static extern int NetApiBufferFree(IntPtr Buffer);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct SERVER_INFO_101
+        {
+            public uint sv101_platform_id;
+            [MarshalAs(UnmanagedType.LPWStr)] public string sv101_name;
+            public uint sv101_version_major;
+            public uint sv101_version_minor;
+            public uint sv101_type;
+            [MarshalAs(UnmanagedType.LPWStr)] public string sv101_comment;
         }
 
         // Additional helper that performs a parallel /24 sweep and returns discovered machines.
