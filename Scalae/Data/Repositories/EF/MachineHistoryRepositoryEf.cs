@@ -17,6 +17,12 @@ namespace Scalae.Data.Repositories.EF
         public IEnumerable<MachineHistory> List() =>
             _context.MachineHistories.AsNoTracking().ToList();
 
+        public IEnumerable<MachineHistory> GetByName(string name) =>
+            _context.MachineHistories
+                .AsNoTracking()
+                .Where(h => h.Name == name)
+                .ToList();
+
         public MachineHistory? GetById(int id) =>
             _context.MachineHistories.Find(id);
 

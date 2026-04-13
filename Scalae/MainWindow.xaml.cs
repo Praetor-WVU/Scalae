@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.DataVisualization.Charting;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Forms;
@@ -30,12 +31,25 @@ namespace Scalae
     /// </summary>
     public partial class MainWindow : Window
     {
+
+        public List<DataPoint> RAMLine { get; set; }
+        public List<DataPoint> GPULine { get; set; }
+        public List<DataPoint> CPULine { get; set; }
+        //temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
+
         // Database & collector fields (allow injection but preserve default behavior)
         private readonly Database_Context _db;
         private readonly DataCollection _collector;
         private readonly MachineMonitoringService _monitoringService;
 
         private ObservableCollection<ClientMachine> _machines = new ObservableCollection<ClientMachine>();
+
+        // Not currently used in the UI, but could be exposed for a history view whenever necessary ui is updated to handle it
+        private ObservableCollection<MachineHistory> _machineHistory = new ObservableCollection<MachineHistory>();
+
+        //Collections for white and black list
+        private ObservableCollection<WhiteList> _whiteList = new ObservableCollection<WhiteList>();
+        private ObservableCollection<BlackList> _blackList = new ObservableCollection<BlackList>();
 
         // timer fields
         private PeriodicTimer? _periodicTimer;
@@ -61,6 +75,32 @@ namespace Scalae
         // Shared initialization logic (keeps all original setup lines)
         private void InitializeWindow()
         {
+            RAMLine = new List<DataPoint>
+            {
+                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 78},
+                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 87},
+                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 73},
+            };
+
+            GPULine = new List<DataPoint>
+            {
+                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 89},
+                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 85},
+                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 77},
+            };
+
+            CPULine = new List<DataPoint>
+            {
+                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 87},
+                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 76},
+                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 80},
+            };
+
+            DataContext = this; // Bind data to XAML
+            //^ Temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
+
+
+
             // Ensure DB and tables exist
             _db.Database.EnsureCreated();
             this.SizeToContent = SizeToContent.WidthAndHeight;
@@ -71,6 +111,8 @@ namespace Scalae
 
             // Bind the collection to the ListBox
             ListBoxMachines.ItemsSource = _machines;
+            ListBoxHistory.ItemsSource = _machines;
+            LBDetected.ItemsSource = _detectedMachines;
 
             // Start the periodic collection loop, closes on main window close.
             StartPeriodicCollection();
@@ -176,19 +218,22 @@ namespace Scalae
                         {
                             UpdateChart(existing);
                         }
+
+
                     }
                 });
 
             }
         }
 
-        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) 
+        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             //Code to update the bargraphs with the data from the selected machine in the listbox.
             if (ListBoxMachines.SelectedItem is ClientMachine selectedMachine)
             {
                 UpdateChart(selectedMachine);
             }
+
         }
 
         private void UpdateChart(ClientMachine machine)
@@ -219,7 +264,7 @@ namespace Scalae
 
             // Gpu bargraph data
 
-            if (machine.LastCpuUtilization.HasValue)
+            if (machine.LastGpuUtilization.HasValue)
             {
                 chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("GPU Usage", machine.LastGpuUtilization.Value));
             }
@@ -228,8 +273,173 @@ namespace Scalae
                 chartData.Add(new System.Collections.Generic.KeyValuePair<string, double>("Usage", 0));
             }
 
-                HardwareSeries.ItemsSource = chartData;
+            HardwareSeries.ItemsSource = chartData;
         }
+
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
+
+        private void ListBoxHistory_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ListBoxHistory.SelectedItem is ClientMachine selectedMachine)
+            {
+                _machineHistory = _monitoringService.GetHistoryList(selectedMachine.Name);
+                
+                
+                // Needs formatting 
+
+                    MaxCpuUtilization.Text = _machineHistory.Max(h => h.CpuUtilization ?? 0).ToString();
+                    MaxRamUtilization.Text = _machineHistory.Max(h => h.RamUtilization ?? 0).ToString();
+                    MaxGpuUtilization.Text = _machineHistory.Max(h => h.GpuUtilization ?? 0).ToString();
+
+                    MinCpuUtilization.Text = _machineHistory.Min(h => h.CpuUtilization ?? 0).ToString();
+                    MinRamUtilization.Text = _machineHistory.Min(h => h.RamUtilization ?? 0).ToString();
+                    MinGpuUtilization.Text = _machineHistory.Min(h => h.GpuUtilization ?? 0).ToString();
+
+                    AverageCpuUtilization.Text = _machineHistory.Average(h => h.CpuUtilization ?? 0).ToString();
+                    AverageRamUtilization.Text = _machineHistory.Average(h => h.RamUtilization ?? 0).ToString();
+                    AverageGpuUtilization.Text = _machineHistory.Average(h => h.GpuUtilization ?? 0).ToString();
+
+
+            }
+                
+        }
+
+       
+
+        public class DataPoint
+        {
+            public string Date { get; set; }
+            public double Value { get; set; }
+        }
+
+        //^ Temporary class for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
+
+        private ObservableCollection<ClientMachine> _detectedMachines = new ObservableCollection<ClientMachine>();
+
+        private async void BtnScanNetwork_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Disable button during scan
+                var button = (System.Windows.Controls.Button)sender;
+                button.IsEnabled = false;
+                button.Content = "Scanning...";
+
+                // Clear previous detection results
+                _detectedMachines.Clear();
+
+                // Run network discovery on background thread
+                var discovered = await Task.Run(() => ClientDetection.ClientDetectAuto(timeoutMs: 5000));
+
+                // Filter out machines already in the database
+                var newMachines = _monitoringService.newMachineVerify(discovered);
+
+                // Add new machines to the detected list
+                foreach (var machine in newMachines)
+                {
+                    _detectedMachines.Add(machine);
+                }
+
+                // Show message if no new machines found
+                if (_detectedMachines.Count == 0)
+                {
+                    System.Windows.MessageBox.Show(
+                        "No new machines detected on the network.", 
+                        "Scan Complete", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"Error during network scan: {ex.Message}", 
+                    "Scan Error", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                // Re-enable button
+                var button = (System.Windows.Controls.Button)sender;
+                button.IsEnabled = true;
+                button.Content = "Scan Network";
+            }
+        }
+
+        private void BtnAccept_Click(object sender, RoutedEventArgs e)
+        {
+            if (LBDetected.SelectedItem is ClientMachine selectedMachine)
+            {
+                try
+                {
+                    // Add to whitelist (saves to database)
+                    _monitoringService.AddToWhitelist(selectedMachine);
+
+                    // Add to main machines collection for monitoring
+                    _machines.Add(selectedMachine);
+
+                    // Remove from detected list
+                    _detectedMachines.Remove(selectedMachine);
+
+                    System.Windows.MessageBox.Show(
+                        $"Machine '{selectedMachine.Name}' added to monitoring list.", 
+                        "Machine Added", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Error adding machine: {ex.Message}", 
+                        "Error", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    "Please select a machine from the detected list.", 
+                    "No Selection", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        private void BtnBlacklist_Click(object sender, RoutedEventArgs e)
+        {
+            if (LBDetected.SelectedItem is ClientMachine selectedMachine)
+            {
+                try
+                {
+                    // For now, just remove from detected list
+                    // TODO: Implement blacklist repository to persist blacklisted machines
+                    _detectedMachines.Remove(selectedMachine);
+
+                    System.Windows.MessageBox.Show(
+                        $"Machine '{selectedMachine.Name}' blacklisted.", 
+                        "Machine Blacklisted", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Error blacklisting machine: {ex.Message}", 
+                        "Error", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    "Please select a machine from the detected list.", 
+                    "No Selection", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Warning);
+            }
+        }
     }
 }

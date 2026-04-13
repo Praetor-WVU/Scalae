@@ -1,7 +1,13 @@
+using Scalae.Data;
 using Scalae.Interfaces;
 using Scalae.Models;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data.Entity;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 
 namespace Scalae.Services
@@ -10,6 +16,8 @@ namespace Scalae.Services
     {
         private readonly IClientMachineRepository _repository;
         private readonly IMachineHistoryRepository _historyRepository;
+        private ObservableCollection<MachineHistory> hist;
+
 
         public MachineMonitoringService(IClientMachineRepository repository, IMachineHistoryRepository historyRepository)
         {
@@ -67,6 +75,72 @@ namespace Scalae.Services
             Debug.WriteLine($"[MachineMonitoringService] Created history entry: Name={historyEntry.Name}, Time={historyEntry.TimeStamp}, Id={historyEntry.Id}");
 
           
+        }
+
+        //Call to retun a list of the history of a machine, used in the UI to display the history of a machine (returns entries for passed param name)
+        public ObservableCollection<MachineHistory> GetHistoryList(string name)
+        {
+            var list = _historyRepository.GetByName(name);
+            hist = new ObservableCollection<MachineHistory>(list);
+
+            return hist;
+        }
+
+        /// <summary>
+        /// Verifies and returns a list of newly detected machines that are not already in the repository.
+        /// This is a helper method for client detection workflow.
+        /// </summary>
+        /// <param name="detectedMachines">List of machines detected via ClientDetection</param>
+        /// <returns>Collection of new machines not yet in the database</returns>
+        public ObservableCollection<ClientMachine> newMachineVerify(IEnumerable<ClientMachine> detectedMachines)
+        {
+            if (detectedMachines == null)
+                throw new ArgumentNullException(nameof(detectedMachines));
+
+            var newMachines = new ObservableCollection<ClientMachine>();
+            var existingMachines = _repository.GetAll();
+
+            foreach (var detected in detectedMachines)
+            {
+                // Check if machine already exists by IP or MAC address
+                bool exists = existingMachines.Any(m =>
+                    (!string.IsNullOrEmpty(detected.IPAddress) && m.IPAddress == detected.IPAddress) ||
+                    (!string.IsNullOrEmpty(detected.MACAddress) && m.MACAddress == detected.MACAddress));
+
+                if (!exists && detected.IsActive)
+                {
+                    newMachines.Add(detected);
+                    Debug.WriteLine($"[MachineMonitoringService] New machine detected: {detected.Name} ({detected.IPAddress})");
+                }
+            }
+
+            return newMachines;
+        }
+
+        /// <summary>
+        /// Adds a machine to the whitelist (saves to repository as monitored machine)
+        /// </summary>
+        public void AddToWhitelist(ClientMachine machine)
+        {
+            if (machine == null)
+                throw new ArgumentNullException(nameof(machine));
+
+            _repository.Create(machine);
+            Debug.WriteLine($"[MachineMonitoringService] Added machine to whitelist: {machine.Name} ({machine.IPAddress})");
+        }
+
+        /// <summary>
+        /// Adds multiple machines to the whitelist
+        /// </summary>
+        public void AddToWhitelist(IEnumerable<ClientMachine> machines)
+        {
+            if (machines == null)
+                throw new ArgumentNullException(nameof(machines));
+
+            foreach (var machine in machines)
+            {
+                AddToWhitelist(machine);
+            }
         }
     }
 }
