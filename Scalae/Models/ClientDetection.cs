@@ -28,8 +28,8 @@ namespace Scalae.Models
     {
         // Default credentials that callers can set to feed into detection APIs when explicit
         // username/password are not provided to the individual methods.
-        public static string? DefaultRunAsUsername { get; set; } = "Charles Evans";
-        public static string? DefaultRunAsPassword { get; set; } = "M1cro2003&";
+        public static string? DefaultRunAsUsername { get; set; } = null;
+        public static string? DefaultRunAsPassword { get; set; } = null;
 
         private readonly ILogger<ClientDetection> _logger;
         // Add a static logger for use inside static methods
