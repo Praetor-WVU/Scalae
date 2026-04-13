@@ -272,10 +272,11 @@ namespace Scalae.Models
 
                 var candidateQueries = new[]
                 {
+                    //In order of most likely to have data. Note: different GPU drivers and Windows versions expose
+                    //GPU performance data differently, so we try multiple queries.
                     "SELECT Name, UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine",
-                    "SELECT UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUPerf",
-                    "SELECT UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters",
-                    // Request all properties to avoid "Invalid query" when a property doesn't exist
+                    "SELECT Name, UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUPerf",
+                    "SELECT Name, UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters",
                     "SELECT * FROM Win32_VideoController"
                 };
 
