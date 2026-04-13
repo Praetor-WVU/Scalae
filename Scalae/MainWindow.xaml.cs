@@ -373,38 +373,25 @@ namespace Scalae
             {
                 try
                 {
-                    // Add to whitelist (saves to database)
-                    _monitoringService.AddToWhitelist(selectedMachine);
+                    // Add machine to database
+                    _db.ClientMachines.Add(selectedMachine);
+                    _db.SaveChanges();
 
-                    // Add to main machines collection for monitoring
-                    _machines.Add(selectedMachine);
-
-                    // Remove from detected list
+                    
+                    // Remove from detected machines
                     _detectedMachines.Remove(selectedMachine);
-
-                    System.Windows.MessageBox.Show(
-                        $"Machine '{selectedMachine.Name}' added to monitoring list.", 
-                        "Machine Added", 
-                        MessageBoxButton.OK, 
-                        MessageBoxImage.Information);
+                    
                 }
                 catch (Exception ex)
                 {
                     System.Windows.MessageBox.Show(
-                        $"Error adding machine: {ex.Message}", 
-                        "Error", 
-                        MessageBoxButton.OK, 
+                        $"Error adding machine: {ex.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 }
             }
-            else
-            {
-                System.Windows.MessageBox.Show(
-                    "Please select a machine from the detected list.", 
-                    "No Selection", 
-                    MessageBoxButton.OK, 
-                    MessageBoxImage.Warning);
-            }
+           
         }
 
         private void BtnBlacklist_Click(object sender, RoutedEventArgs e)
@@ -413,15 +400,10 @@ namespace Scalae
             {
                 try
                 {
-                    // For now, just remove from detected list
-                    // TODO: Implement blacklist repository to persist blacklisted machines
+                    
                     _detectedMachines.Remove(selectedMachine);
 
-                    System.Windows.MessageBox.Show(
-                        $"Machine '{selectedMachine.Name}' blacklisted.", 
-                        "Machine Blacklisted", 
-                        MessageBoxButton.OK, 
-                        MessageBoxImage.Information);
+                    
                 }
                 catch (Exception ex)
                 {
@@ -432,14 +414,7 @@ namespace Scalae
                         MessageBoxImage.Error);
                 }
             }
-            else
-            {
-                System.Windows.MessageBox.Show(
-                    "Please select a machine from the detected list.", 
-                    "No Selection", 
-                    MessageBoxButton.OK, 
-                    MessageBoxImage.Warning);
-            }
+            
         }
     }
 }
