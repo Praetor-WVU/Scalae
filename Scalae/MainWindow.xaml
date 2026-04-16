@@ -268,8 +268,28 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Settings" Margin="5,1,-9,0">
-                <Grid Background="Pink"/>
+            <TabItem Header="Graphing" Margin="5,1,-9,0">
+                <Grid Background="#7699d4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.30"/>
+                        <ColumnDefinition Width="0.70"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid.RowDefinitions>
+                        
+                    </Grid.RowDefinitions>
+                    
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Settings" Margin="8,1,-12,-1">
+                <Grid Background="#7699d4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="103*"/>
+                        <ColumnDefinition Width="189*"/>
+                    </Grid.ColumnDefinitions>
+
+                </Grid>
             </TabItem>
         </TabControl>
     </Grid>
