@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=0,4&height=300&section=header&text=Scalae%20&desc=Hardware%20Administrative%20Platform&descAlignY=68&descAlign62&fontSize=90" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=0,4&height=300&section=header&text=Scalae%20&desc=Hardware%20Monitoring%20Application&descAlignY=68&descAlign62&fontSize=90" />
 </p>
 
 <!--Program Overview-->
