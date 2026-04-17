@@ -275,9 +275,13 @@
                         <ColumnDefinition Width="0.70"/>
                     </Grid.ColumnDefinitions>
 
+                    <!--  Needed commented out as it was creating an error, will need to add back in when you add content to this tab
+                    
                     <Grid.RowDefinitions>
-                        
-                    </Grid.RowDefinitions>
+                    
+                    </Grid.RowDefinitions> 
+                    
+                    -->
                     
                 </Grid>
             </TabItem>

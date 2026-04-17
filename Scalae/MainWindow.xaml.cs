@@ -334,10 +334,17 @@ namespace Scalae
                 // Filter out machines already in the database
                 var newMachines = _monitoringService.newMachineVerify(discovered);
 
-                // Add new machines to the detected list
+                // Get blacklisted and whitelisted IP addresses
+                var blacklistedIPs = _db.BlackLists.Select(b => b.IPAddress).ToHashSet();
+                var whitelistedIPs = _db.WhiteLists.Select(w => w.IPAddress).ToHashSet();
+
+                // Add new machines to the detected list, excluding blacklisted and whitelisted machines
                 foreach (var machine in newMachines)
                 {
-                    _detectedMachines.Add(machine);
+                    if (!blacklistedIPs.Contains(machine.IPAddress) && !whitelistedIPs.Contains(machine.IPAddress))
+                    {
+                        _detectedMachines.Add(machine);
+                    }
                 }
 
                 // Show message if no new machines found
@@ -400,10 +407,17 @@ namespace Scalae
             {
                 try
                 {
-                    
+                    _db.BlackLists.Add(new BlackList
+                    {
+                        IPAddress = selectedMachine.IPAddress,
+                        IsBlocked = true
+                    });
+            
+                    _db.SaveChanges();
+
                     _detectedMachines.Remove(selectedMachine);
 
-                    
+            
                 }
                 catch (Exception ex)
                 {
@@ -413,6 +427,7 @@ namespace Scalae
                         MessageBoxButton.OK, 
                         MessageBoxImage.Error);
                 }
+
             }
             
         }
