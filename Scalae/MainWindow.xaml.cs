@@ -331,8 +331,39 @@ namespace Scalae
                 // Run network discovery on background thread
                 var discovered = await Task.Run(() => ClientDetection.ClientDetectAuto(timeoutMs: 5000));
 
+                // PING each discovered machine to populate ARP table, then re-query
+                var enhanced = await Task.Run(() =>
+                {
+                    var results = new List<ClientMachine>();
+                    foreach (var machine in discovered)
+                    {
+                        if (string.IsNullOrWhiteSpace(machine.IPAddress))
+                        {
+                            results.Add(machine);
+                            continue;
+                        }
+
+                        try
+                        {
+                            // Ping to populate ARP table
+                            using var ping = new System.Net.NetworkInformation.Ping();
+                            ping.Send(machine.IPAddress, 1000);
+                            
+                            // Re-query with ClientDetectIP to get MAC from ARP
+                            var enhanced = ClientDetection.ClientDetectIP(machine.IPAddress, timeoutMs: 2000);
+                            results.Add(enhanced);
+                        }
+                        catch
+                        {
+                            // If enhancement fails, use original
+                            results.Add(machine);
+                        }
+                    }
+                    return results;
+                });
+
                 // Filter out machines already in the database
-                var newMachines = _monitoringService.newMachineVerify(discovered);
+                var newMachines = _monitoringService.newMachineVerify(enhanced);
 
                 // Get blacklisted and whitelisted IP addresses
                 var blacklistedIPs = _db.BlackLists.Select(b => b.IPAddress).ToHashSet();
@@ -374,20 +405,34 @@ namespace Scalae
             }
         }
 
-        private void BtnAccept_Click(object sender, RoutedEventArgs e)
+        private async void BtnAccept_Click(object sender, RoutedEventArgs e)
         {
             if (LBDetected.SelectedItem is ClientMachine selectedMachine)
             {
                 try
                 {
+                    // Disable button during processing
+                    var button = (System.Windows.Controls.Button)sender;
+                    
+                    
                     // Add machine to database
                     _db.ClientMachines.Add(selectedMachine);
-                    _db.SaveChanges();
+                    await _db.SaveChangesAsync();
 
+                   
+                    var data = await Task.Run(() => _collector.CollectFull(selectedMachine));
+                    _monitoringService.UpdateAndSaveMetrics(selectedMachine, data);
                     
-                    // Remove from detected machines
+                    _machines.Add(selectedMachine);
+                    
                     _detectedMachines.Remove(selectedMachine);
                     
+                    
+                    System.Windows.MessageBox.Show(
+                        $"Machine {selectedMachine.Name} has been accepted and added to monitoring.",
+                        "Machine Accepted",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -398,26 +443,39 @@ namespace Scalae
                         MessageBoxImage.Error);
                 }
             }
-           
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    "Please select a machine from the detected list first.",
+                    "No Selection",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
-        private void BtnBlacklist_Click(object sender, RoutedEventArgs e)
+        private async void BtnBlacklist_Click(object sender, RoutedEventArgs e)
         {
             if (LBDetected.SelectedItem is ClientMachine selectedMachine)
             {
                 try
                 {
+                    // Add to blacklist
                     _db.BlackLists.Add(new BlackList
                     {
                         IPAddress = selectedMachine.IPAddress,
                         IsBlocked = true
                     });
-            
+    
                     _db.SaveChanges();
 
+                    // Remove from detected machines
                     _detectedMachines.Remove(selectedMachine);
-
             
+                    System.Windows.MessageBox.Show(
+                        $"Machine {selectedMachine.Name} ({selectedMachine.IPAddress}) has been blacklisted.",
+                        "Machine Blacklisted",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -427,9 +485,15 @@ namespace Scalae
                         MessageBoxButton.OK, 
                         MessageBoxImage.Error);
                 }
-
             }
-            
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    "Please select a machine from the detected list first.",
+                    "No Selection",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
     }
 }

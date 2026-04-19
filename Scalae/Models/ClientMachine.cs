@@ -7,10 +7,10 @@ namespace Scalae.Models
     public class ClientMachine
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string MACAddress { get; set; }
-        public string IPAddress { get; set; }
-        public string OperatingSystem { get; set; }
+        public string? Name { get; set; }
+        public string? MACAddress { get; set; }  // ← Changed to nullable
+        public string? IPAddress { get; set; }
+        public string? OperatingSystem { get; set; }
         public bool IsActive { get; set; }
         
         // New: Display latest hardware info
@@ -22,13 +22,13 @@ namespace Scalae.Models
         public DateTime? LastDataCollectionTime { get; set; }
 
         // Navigation property to all historical data
-       
+      
 
         public ClientMachine() 
         { 
         }
 
-        public ClientMachine(string name, string macAddress, string ipAddress, string operatingSystem, bool isActive)
+        public ClientMachine(string? name, string? macAddress, string? ipAddress, string? operatingSystem, bool isActive)
         {
             Name = name;
             MACAddress = macAddress;

@@ -11,27 +11,30 @@ namespace Scalae.Data
     {
         public static void Seed()
         {
-            using var db = new Database_Context();
-            db.Database.EnsureCreated();
+            //using var db = new Database_Context();
+            //db.Database.EnsureCreated();
 
-            // Check if data already exists - if so, skip seeding
-            if (db.ClientMachines.Any())
-            {
-                return; // Database has been seeded
-            }
+            //// Check if data already exists - if so, skip seeding
+            //if (db.ClientMachines.Any())
+            //{
+            //    return; // Database has been seeded
+            //}
 
-            var repo = new ClientMachineRepositoryEf(db);
-            var historyRepo = new MachineHistoryRepositoryEf(db); // use your actual implementation type
-            var monitoringService = new MachineMonitoringService(repo, historyRepo);
+            //var repo = new ClientMachineRepositoryEf(db);
+            //var historyRepo = new MachineHistoryRepositoryEf(db); // use your actual implementation type
+            //var monitoringService = new MachineMonitoringService(repo, historyRepo);
 
-            // Use ClientDetection to get real MAC, IP, hostname, and OS info
-            var localMachine = ClientDetection.ClientDetectIP("localhost", timeoutMs: 2000);
+            //// Use ClientDetection to get real MAC, IP, hostname, and OS info
+            //var localMachine = ClientDetection.ClientDetectIP("localhost", timeoutMs: 2000);
 
-            var collector = new DataCollection();
-            var results = collector.CollectFull(localMachine);
+            //var collector = new DataCollection();
+            //var results = collector.CollectFull(localMachine);
 
-            // Use the service to populate the local machine with collected data
-            monitoringService.UpdateAndSaveMetrics(localMachine, results);
+            //// Use the service to populate the local machine with collected data
+            //monitoringService.UpdateAndSaveMetrics(localMachine, results);
+
+
+            //////////////////////////////////////////////////////////////////////////////////////////////////////
 
         //    var random = new Random();
 
