@@ -7,6 +7,49 @@
         mc:Ignorable="d"
         Title="Selection" Height="450" Width="800">
     <Grid>
-        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.20*"/>
+            <ColumnDefinition Width="0.70*"/>
+            <ColumnDefinition Width="0.10*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <ListBox x:Name="LBSelected" Grid.Row="0" Background="AliceBlue" >
+                <!-- Color is only temp for testing purposes-->
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Vertical" Margin="4">
+                            <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="LightGray"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+        <!--Column 0 grid-->
+
+        <Grid Grid.Column="1" HorizontalAlignment="Left">
+            <StackPanel>
+                <CheckBox x:Name="Graph1" Content="Graph 1"/>
+                <CheckBox x:Name="Graph2" Content="Graph 2"/>
+                <CheckBox x:Name="Graph3" Content="Graph 3"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Button Grid.Row="0" Content="Save"  HorizontalAlignment="Center" Margin="0,10,0,404" Grid.RowSpan="2"/>
+            <!-- Save button will also close the window-->
+        </Grid>
+
     </Grid>
 </Window>
