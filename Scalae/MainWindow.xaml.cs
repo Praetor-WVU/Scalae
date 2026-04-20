@@ -503,6 +503,15 @@ namespace Scalae
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
+<<<<<<< HEAD
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Selection selectwin = new Selection();
+            selectwin.Show();
+=======
+>>>>>>> f9ffef4b2042c6479dcc4105c104c4710d5b92b5
         }
 
         private async void AddMachine_WhiteList(object sender, RoutedEventArgs e)
