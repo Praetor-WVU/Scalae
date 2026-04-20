@@ -33,9 +33,7 @@ namespace Scalae
     public partial class MainWindow : Window
     {
 
-        public List<DataPoint> RAMLine { get; set; }
-        public List<DataPoint> GPULine { get; set; }
-        public List<DataPoint> CPULine { get; set; }
+        
         //temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
 
         // Database & collector fields (allow injection but preserve default behavior)
@@ -71,35 +69,22 @@ namespace Scalae
 
             InitializeComponent();
             InitializeWindow();
+            
+            // Initialize empty plot
+            Loaded += (s, e) =>
+            {
+                WpfPlot1.Plot.Title("Select a machine to view history");
+                WpfPlot1.Refresh();
+            };
         }
 
         // Shared initialization logic (keeps all original setup lines)
         private void InitializeWindow()
         {
-            RAMLine = new List<DataPoint>
-            {
-                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 78},
-                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 87},
-                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 73},
-            };
-
-            GPULine = new List<DataPoint>
-            {
-                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 89},
-                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 85},
-                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 77},
-            };
-
-            CPULine = new List<DataPoint>
-            {
-                new DataPoint { Date = "2/24/26 - 12:00:00", Value = 87},
-                new DataPoint { Date = "2/24/26 - 13:00:00", Value = 76},
-                new DataPoint { Date = "3/25/26 - 14:00:00", Value = 80},
-            };
+           
 
             DataContext = this; // Bind data to XAML
-            //^ Temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
-
+            //^ Temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.Â 
 
 
             // Ensure DB and tables exist
@@ -293,34 +278,12 @@ namespace Scalae
             if (ListBoxHistory.SelectedItem is ClientMachine selectedMachine)
             {
                 _machineHistory = _monitoringService.GetHistoryList(selectedMachine.Name);
-
-
-                // Needs formatting 
-
-                MaxCpuUtilization.Text = _machineHistory.Max(h => h.CpuUtilization ?? 0).ToString();
-                MaxRamUtilization.Text = _machineHistory.Max(h => h.RamUtilization ?? 0).ToString();
-                MaxGpuUtilization.Text = _machineHistory.Max(h => h.GpuUtilization ?? 0).ToString();
-
-                MinCpuUtilization.Text = _machineHistory.Min(h => h.CpuUtilization ?? 0).ToString();
-                MinRamUtilization.Text = _machineHistory.Min(h => h.RamUtilization ?? 0).ToString();
-                MinGpuUtilization.Text = _machineHistory.Min(h => h.GpuUtilization ?? 0).ToString();
-
-                AverageCpuUtilization.Text = _machineHistory.Average(h => h.CpuUtilization ?? 0).ToString();
-                AverageRamUtilization.Text = _machineHistory.Average(h => h.RamUtilization ?? 0).ToString();
-                AverageGpuUtilization.Text = _machineHistory.Average(h => h.GpuUtilization ?? 0).ToString();
-
-
+                
+                // Apply date filter and update plot
+                ApplyDateFilterAndUpdatePlot();
             }
-
         }
 
-
-
-        public class DataPoint
-        {
-            public string Date { get; set; }
-            public double Value { get; set; }
-        }
 
         //^ Temporary class for testing the chart, will be removed when we implement the actual data collection and chart updating logic.
 
@@ -380,6 +343,32 @@ namespace Scalae
                 var blacklistedIPs = _db.BlackLists.Select(b => b.IPAddress).ToHashSet();
                 var whitelistedIPs = _db.WhiteLists.Select(w => w.IPAddress).ToHashSet();
 
+                // Process whitelisted machines first - automatically add them to client machine database
+                int whitelistedAdded = 0;
+                foreach (var machine in newMachines)
+                {
+                    if (whitelistedIPs.Contains(machine.IPAddress))
+                    {
+                        try
+                        {
+                            // Add to database and collect metrics
+                            _db.ClientMachines.Add(machine);
+                            await _db.SaveChangesAsync();
+
+                            var data = await Task.Run(() => _collector.CollectFull(machine));
+                            _monitoringService.UpdateAndSaveMetrics(machine, data);
+
+                            // Update UI
+                            _machines.Add(machine);
+                            whitelistedAdded++;
+                        }
+                        catch
+                        {
+                            // Skip failed whitelisted machines but continue processing
+                        }
+                    }
+                }
+
                 // Add new machines to the detected list, excluding blacklisted and whitelisted machines
                 foreach (var machine in newMachines)
                 {
@@ -389,8 +378,16 @@ namespace Scalae
                     }
                 }
 
-                // Show message if no new machines found
-                if (_detectedMachines.Count == 0)
+                // Show appropriate message
+                if (whitelistedAdded > 0 && _detectedMachines.Count == 0)
+                {
+                    System.Windows.MessageBox.Show($"Automatically added {whitelistedAdded} whitelisted machine(s) to monitoring. No new machines detected.", "Scan Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else if (whitelistedAdded > 0)
+                {
+                    System.Windows.MessageBox.Show($"Automatically added {whitelistedAdded} whitelisted machine(s) to monitoring.", "Scan Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else if (_detectedMachines.Count == 0)
                 {
                     System.Windows.MessageBox.Show("No new machines detected on the network.", "Scan Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -487,7 +484,6 @@ namespace Scalae
         private async void AddMachine_WhiteList(object sender, RoutedEventArgs e)
         {
             var dialog = new AddWhitelistDialog { Owner = this };
-
             if (dialog.ShowDialog() == true)
             {
                 try
@@ -499,10 +495,6 @@ namespace Scalae
                     {
                         try
                         {
-                            // Skip if already in database
-                            if (_db.ClientMachines.Any(m => m.IPAddress == ipAddress))
-                                continue;
-
                             // Skip if blacklisted
                             if (_db.BlackLists.Any(b => b.IPAddress == ipAddress))
                                 continue;
@@ -511,35 +503,19 @@ namespace Scalae
                             if (_db.WhiteLists.Any(w => w.IPAddress == ipAddress))
                                 continue;
 
-                            // Detect machine
-                            var machine = await Task.Run(() =>
-                                ClientDetection.ClientDetectIP(ipAddress, timeoutMs: 5000));
-
-                            if (machine == null) continue;
-
-                            // Add to database and collect metrics
-                            _db.ClientMachines.Add(machine);
-                            await _db.SaveChangesAsync();
-
-                            var data = await Task.Run(() => _collector.CollectFull(machine));
-                            _monitoringService.UpdateAndSaveMetrics(machine, data);
-
-                            // Add to whitelist
+                            // Add to whitelist directly - don't try to detect or add as client machine
                             var newWhitelistEntry = new WhiteList { IPAddress = ipAddress, IsAllowed = true };
                             _db.WhiteLists.Add(newWhitelistEntry);
                             await _db.SaveChangesAsync();
 
                             // Update UI - Add to the ObservableCollection
                             _whiteList.Add(newWhitelistEntry);
-
-                            // Update UI
-                            _machines.Add(machine);
                             successCount++;
                         }
                         catch { /* Skip failed IPs */ }
                     }
 
-                    System.Windows.MessageBox.Show("Added {successCount} of {dialog.IPAddresses.Count} machine(s) to monitoring.", "Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    System.Windows.MessageBox.Show($"Added {successCount} of {dialog.IPAddresses.Count} IP address(es) to whitelist.", "Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -653,6 +629,200 @@ namespace Scalae
             {
                 System.Windows.MessageBox.Show("Please select an IP address from the blacklist first.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        private void HistoryCalendar_SelectedDatesChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Refresh plot when calendar selection changes
+            ApplyDateFilterAndUpdatePlot();
+        }
+
+        private void BtnClearDates_Click(object sender, RoutedEventArgs e)
+        {
+            // Clear calendar selection to show all time
+            HistoryCalendar.SelectedDates.Clear();
+        }
+
+        private void ApplyDateFilterAndUpdatePlot()
+        {
+            if (_machineHistory == null || _machineHistory.Count == 0)
+            {
+                UpdateScottPlot(new ObservableCollection<MachineHistory>());
+                return;
+            }
+
+            var filteredHistory = _machineHistory.AsEnumerable();
+
+            // If calendar has selected dates, filter to those dates only
+            if (HistoryCalendar.SelectedDates.Count > 0)
+            {
+                var selectedDates = HistoryCalendar.SelectedDates.OrderBy(d => d).ToList();
+                var minDate = selectedDates.First().Date;
+                var maxDate = selectedDates.Last().Date.AddDays(1).AddTicks(-1); // End of last selected day
+
+                filteredHistory = filteredHistory.Where(h => 
+                    h.TimeStamp.HasValue && 
+                    h.TimeStamp.Value >= minDate && 
+                    h.TimeStamp.Value <= maxDate);
+            }
+            // Otherwise, show all time (no filter)
+
+            UpdateScottPlot(new ObservableCollection<MachineHistory>(filteredHistory.ToList()));
+        }
+
+        private void UpdateScottPlot(ObservableCollection<MachineHistory> history)
+        {
+            if (history == null || history.Count == 0)
+            {
+                WpfPlot1.Plot.Clear();
+                WpfPlot1.Plot.Title("No data available");
+                WpfPlot1.Refresh();
+                
+                // Clear statistics
+                ClearStatistics();
+                return;
+            }
+
+            // Clear existing plots
+            WpfPlot1.Plot.Clear();
+
+            // Sort by timestamp
+            var sortedHistory = history.OrderBy(h => h.TimeStamp ?? DateTime.MinValue).ToList();
+
+            // Prepare data arrays
+            var timestamps = sortedHistory.Select(h => h.TimeStamp?.ToOADate() ?? 0).ToArray();
+            var cpuData = sortedHistory.Select(h => h.CpuUtilization ?? 0).ToArray();
+            var ramData = sortedHistory.Select(h => h.RamUtilization ?? 0).ToArray();
+            var gpuData = sortedHistory.Select(h => h.GpuUtilization ?? 0).ToArray();
+
+            // Calculate and update statistics
+            UpdateStatistics(cpuData, ramData, gpuData);
+
+            // Add line plots for each metric
+            var cpuLine = WpfPlot1.Plot.Add.Scatter(timestamps, cpuData);
+            cpuLine.Label = "CPU %";
+            cpuLine.LineWidth = 2;
+            cpuLine.Color = ScottPlot.Color.FromHex("#FF6B6B"); // Red
+
+            var ramLine = WpfPlot1.Plot.Add.Scatter(timestamps, ramData);
+            ramLine.Label = "RAM %";
+            ramLine.LineWidth = 2;
+            ramLine.Color = ScottPlot.Color.FromHex("#4ECDC4"); // Teal
+
+            var gpuLine = WpfPlot1.Plot.Add.Scatter(timestamps, gpuData);
+            gpuLine.Label = "GPU %";
+            gpuLine.LineWidth = 2;
+            gpuLine.Color = ScottPlot.Color.FromHex("#95E1D3"); // Light Green
+
+            // Configure axes
+            WpfPlot1.Plot.Axes.DateTimeTicksBottom();
+            WpfPlot1.Plot.Axes.Left.Label.Text = "Utilization (%)";
+            WpfPlot1.Plot.Axes.Bottom.Label.Text = "Time";
+            
+            // Set Y-axis range from 0 to 100
+            WpfPlot1.Plot.Axes.SetLimitsY(0, 100);
+
+            // Add legend
+            WpfPlot1.Plot.ShowLegend();
+
+            // Build title with date range
+            string titleSuffix = "";
+
+            // Set X-axis limits and interaction based on calendar selection
+            if (HistoryCalendar.SelectedDates.Count > 0)
+            {
+                var selectedDates = HistoryCalendar.SelectedDates.OrderBy(d => d).ToList();
+                var minDate = selectedDates.First().Date;
+                var maxDate = selectedDates.Last().Date.AddDays(1).AddTicks(-1);
+                
+                // Lock X-axis to selected date range
+                WpfPlot1.Plot.Axes.SetLimitsX(minDate.ToOADate(), maxDate.ToOADate());
+                
+                if (selectedDates.Count == 1)
+                {
+                    titleSuffix = $" - {selectedDates.First():MMM dd, yyyy}";
+                }
+                else
+                {
+                    titleSuffix = $" - {selectedDates.First():MMM dd} to {selectedDates.Last():MMM dd, yyyy}";
+                }
+            }
+            else
+            {
+                // Allow free zooming when showing all time
+                WpfPlot1.Plot.Axes.AutoScale();
+                WpfPlot1.Plot.Axes.SetLimitsY(0, 100); // But keep Y locked
+                titleSuffix = " - All Time";
+            }
+
+            if (ListBoxHistory.SelectedItem is ClientMachine selectedMachine)
+            {
+                WpfPlot1.Plot.Title($"{selectedMachine.Name}{titleSuffix}");
+            }
+
+            // Refresh the plot
+            WpfPlot1.Refresh();
+        }
+
+        private void UpdateStatistics(double[] cpuData, double[] ramData, double[] gpuData)
+        {
+            // CPU Statistics
+            if (cpuData != null && cpuData.Length > 0)
+            {
+                AverageCpuUtilization.Text = $"{cpuData.Average():F2}%";
+                MaxCpuUtilization.Text = $"{cpuData.Max():F2}%";
+                MinCpuUtilization.Text = $"{cpuData.Min():F2}%";
+            }
+            else
+            {
+                AverageCpuUtilization.Text = "N/A";
+                MaxCpuUtilization.Text = "N/A";
+                MinCpuUtilization.Text = "N/A";
+            }
+
+            // RAM Statistics
+            if (ramData != null && ramData.Length > 0)
+            {
+                AverageRamUtilization.Text = $"{ramData.Average():F2}%";
+                MaxRamUtilization.Text = $"{ramData.Max():F2}%";
+                MinRamUtilization.Text = $"{ramData.Min():F2}%";
+            }
+            else
+            {
+                AverageRamUtilization.Text = "N/A";
+                MaxRamUtilization.Text = "N/A";
+                MinRamUtilization.Text = "N/A";
+            }
+
+            // GPU Statistics
+            if (gpuData != null && gpuData.Length > 0)
+            {
+                AverageGpuUtilization.Text = $"{gpuData.Average():F2}%";
+                MaxGpuUtilization.Text = $"{gpuData.Max():F2}%";
+                MinGpuUtilization.Text = $"{gpuData.Min():F2}%";
+            }
+            else
+            {
+                AverageGpuUtilization.Text = "N/A";
+                MaxGpuUtilization.Text = "N/A";
+                MinGpuUtilization.Text = "N/A";
+            }
+        }
+
+        private void ClearStatistics()
+        {
+            // Clear all statistics TextBlocks
+            AverageCpuUtilization.Text = "";
+            MaxCpuUtilization.Text = "";
+            MinCpuUtilization.Text = "";
+            
+            AverageRamUtilization.Text = "";
+            MaxRamUtilization.Text = "";
+            MinRamUtilization.Text = "";
+            
+            AverageGpuUtilization.Text = "";
+            MaxGpuUtilization.Text = "";
+            MinGpuUtilization.Text = "";
         }
     }
 }

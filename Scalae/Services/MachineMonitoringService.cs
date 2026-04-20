@@ -38,6 +38,7 @@ namespace Scalae.Services
 
             machine.LastCpuModel = collectedData[0][0];
             machine.LastCpuUtilization = ParseUtilization(collectedData[1][0]);
+            machine.LastRamModel = collectedData[0][1];
             machine.LastRamUtilization = ParseUtilization(collectedData[1][1]);
             machine.LastGpuModel = collectedData[0][2];
             machine.LastGpuUtilization = ParseUtilization(collectedData[1][2]);
