@@ -8,6 +8,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Net;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading;
@@ -112,7 +113,7 @@ namespace Scalae
             // Load whitelist and blacklist from database
             var whiteListData = _db.WhiteLists.AsNoTracking().ToList();
             _whiteList = new ObservableCollection<WhiteList>(whiteListData);
-            
+
             var blackListData = _db.BlackLists.AsNoTracking().ToList();
             _blackList = new ObservableCollection<BlackList>(blackListData);
 
@@ -292,28 +293,28 @@ namespace Scalae
             if (ListBoxHistory.SelectedItem is ClientMachine selectedMachine)
             {
                 _machineHistory = _monitoringService.GetHistoryList(selectedMachine.Name);
-                
-                
+
+
                 // Needs formatting 
 
-                    MaxCpuUtilization.Text = _machineHistory.Max(h => h.CpuUtilization ?? 0).ToString();
-                    MaxRamUtilization.Text = _machineHistory.Max(h => h.RamUtilization ?? 0).ToString();
-                    MaxGpuUtilization.Text = _machineHistory.Max(h => h.GpuUtilization ?? 0).ToString();
+                MaxCpuUtilization.Text = _machineHistory.Max(h => h.CpuUtilization ?? 0).ToString();
+                MaxRamUtilization.Text = _machineHistory.Max(h => h.RamUtilization ?? 0).ToString();
+                MaxGpuUtilization.Text = _machineHistory.Max(h => h.GpuUtilization ?? 0).ToString();
 
-                    MinCpuUtilization.Text = _machineHistory.Min(h => h.CpuUtilization ?? 0).ToString();
-                    MinRamUtilization.Text = _machineHistory.Min(h => h.RamUtilization ?? 0).ToString();
-                    MinGpuUtilization.Text = _machineHistory.Min(h => h.GpuUtilization ?? 0).ToString();
+                MinCpuUtilization.Text = _machineHistory.Min(h => h.CpuUtilization ?? 0).ToString();
+                MinRamUtilization.Text = _machineHistory.Min(h => h.RamUtilization ?? 0).ToString();
+                MinGpuUtilization.Text = _machineHistory.Min(h => h.GpuUtilization ?? 0).ToString();
 
-                    AverageCpuUtilization.Text = _machineHistory.Average(h => h.CpuUtilization ?? 0).ToString();
-                    AverageRamUtilization.Text = _machineHistory.Average(h => h.RamUtilization ?? 0).ToString();
-                    AverageGpuUtilization.Text = _machineHistory.Average(h => h.GpuUtilization ?? 0).ToString();
+                AverageCpuUtilization.Text = _machineHistory.Average(h => h.CpuUtilization ?? 0).ToString();
+                AverageRamUtilization.Text = _machineHistory.Average(h => h.RamUtilization ?? 0).ToString();
+                AverageGpuUtilization.Text = _machineHistory.Average(h => h.GpuUtilization ?? 0).ToString();
 
 
             }
-                
+
         }
 
-       
+
 
         public class DataPoint
         {
@@ -346,6 +347,7 @@ namespace Scalae
                     var results = new List<ClientMachine>();
                     foreach (var machine in discovered)
                     {
+                        
                         if (string.IsNullOrWhiteSpace(machine.IPAddress))
                         {
                             results.Add(machine);
@@ -357,7 +359,7 @@ namespace Scalae
                             // Ping to populate ARP table
                             using var ping = new System.Net.NetworkInformation.Ping();
                             ping.Send(machine.IPAddress, 1000);
-                            
+
                             // Re-query with ClientDetectIP to get MAC from ARP
                             var enhanced = ClientDetection.ClientDetectIP(machine.IPAddress, timeoutMs: 2000);
                             results.Add(enhanced);
@@ -390,20 +392,12 @@ namespace Scalae
                 // Show message if no new machines found
                 if (_detectedMachines.Count == 0)
                 {
-                    System.Windows.MessageBox.Show(
-                        "No new machines detected on the network.", 
-                        "Scan Complete", 
-                        MessageBoxButton.OK, 
-                        MessageBoxImage.Information);
+                    System.Windows.MessageBox.Show("No new machines detected on the network.", "Scan Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(
-                    $"Error during network scan: {ex.Message}", 
-                    "Scan Error", 
-                    MessageBoxButton.OK, 
-                    MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"Error during network scan: {ex.Message}", "Scan Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -422,43 +416,31 @@ namespace Scalae
                 {
                     // Disable button during processing
                     var button = (System.Windows.Controls.Button)sender;
-                    
-                    
+
+
                     // Add machine to database
                     _db.ClientMachines.Add(selectedMachine);
                     await _db.SaveChangesAsync();
 
-                   
+
                     var data = await Task.Run(() => _collector.CollectFull(selectedMachine));
                     _monitoringService.UpdateAndSaveMetrics(selectedMachine, data);
-                    
+
                     _machines.Add(selectedMachine);
-                    
+
                     _detectedMachines.Remove(selectedMachine);
-                    
-                    
-                    System.Windows.MessageBox.Show(
-                        $"Machine {selectedMachine.Name} has been accepted and added to monitoring.",
-                        "Machine Accepted",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+
+
+                    System.Windows.MessageBox.Show($"Machine {selectedMachine.Name} has been accepted and added to monitoring.", "Machine Accepted", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show(
-                        $"Error adding machine: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    System.Windows.MessageBox.Show($"Error adding machine: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                System.Windows.MessageBox.Show(
-                    "Please select a machine from the detected list first.",
-                    "No Selection",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Please select a machine from the detected list first.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -474,50 +456,38 @@ namespace Scalae
                         IPAddress = selectedMachine.IPAddress,
                         IsBlocked = true
                     });
-    
+
                     _db.SaveChanges();
 
                     // Remove from detected machines
                     _detectedMachines.Remove(selectedMachine);
-            
-                    System.Windows.MessageBox.Show(
-                        $"Machine {selectedMachine.Name} ({selectedMachine.IPAddress}) has been blacklisted.",
-                        "Machine Blacklisted",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+
+                    System.Windows.MessageBox.Show($"Machine {selectedMachine.Name} ({selectedMachine.IPAddress}) has been blacklisted.", "Machine Blacklisted", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show(
-                        $"Error blacklisting machine: {ex.Message}", 
-                        "Error", 
-                        MessageBoxButton.OK, 
-                        MessageBoxImage.Error);
+                    System.Windows.MessageBox.Show($"Error blacklisting machine: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                System.Windows.MessageBox.Show(
-                    "Please select a machine from the detected list first.",
-                    "No Selection",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Please select a machine from the detected list first.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Warning);  
+
             }
-<<<<<<< HEAD
+
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             Selection selectwin = new Selection();
             selectwin.Show();
-=======
->>>>>>> f9ffef4b2042c6479dcc4105c104c4710d5b92b5
+
         }
 
         private async void AddMachine_WhiteList(object sender, RoutedEventArgs e)
         {
             var dialog = new AddWhitelistDialog { Owner = this };
-    
+
             if (dialog.ShowDialog() == true)
             {
                 try
@@ -542,7 +512,7 @@ namespace Scalae
                                 continue;
 
                             // Detect machine
-                            var machine = await Task.Run(() => 
+                            var machine = await Task.Run(() =>
                                 ClientDetection.ClientDetectIP(ipAddress, timeoutMs: 5000));
 
                             if (machine == null) continue;
@@ -555,8 +525,12 @@ namespace Scalae
                             _monitoringService.UpdateAndSaveMetrics(machine, data);
 
                             // Add to whitelist
-                            _db.WhiteLists.Add(new WhiteList { IPAddress = ipAddress, IsAllowed = true });
+                            var newWhitelistEntry = new WhiteList { IPAddress = ipAddress, IsAllowed = true };
+                            _db.WhiteLists.Add(newWhitelistEntry);
                             await _db.SaveChangesAsync();
+
+                            // Update UI - Add to the ObservableCollection
+                            _whiteList.Add(newWhitelistEntry);
 
                             // Update UI
                             _machines.Add(machine);
@@ -565,24 +539,119 @@ namespace Scalae
                         catch { /* Skip failed IPs */ }
                     }
 
-                    System.Windows.MessageBox.Show(
-                        $"Added {successCount} of {dialog.IPAddresses.Count} machine(s) to monitoring.",
-                        "Complete",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                    System.Windows.MessageBox.Show("Added {successCount} of {dialog.IPAddresses.Count} machine(s) to monitoring.", "Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show(
-                        $"Error: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 finally
                 {
                     this.Cursor = System.Windows.Input.Cursors.Arrow;
                 }
+            }
+        }
+
+
+        private void RemoveMachine_WhiteList(object sender, RoutedEventArgs e)
+        {
+            if (LBWhitelist.SelectedItem is WhiteList selectedWhite)
+            {
+                try
+                {
+                    // Remove from whitelist
+                    _db.WhiteLists.Remove(selectedWhite);
+                    _db.SaveChanges();
+                    // Remove from UI collection
+                    _whiteList.Remove(selectedWhite);
+
+                    System.Windows.MessageBox.Show($"IP {selectedWhite.IPAddress} has been removed from the whitelist.", "Whitelist Updated", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Error updating whitelist: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                System.Windows.MessageBox.Show("Please select an IP address from the whitelist first.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private async void AddMachine_BlackList(object sender, RoutedEventArgs e)
+        {
+            var dialog = new AddBlackListDialog { Owner = this };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    this.Cursor = System.Windows.Input.Cursors.Wait;
+                    int successCount = 0;
+
+                    foreach (var ipAddress in dialog.IPAddresses)
+                    {
+                        try
+                        {
+                            // Skip if already blacklisted
+                            if (_db.BlackLists.Any(b => b.IPAddress == ipAddress))
+                                continue;
+
+                            // Add to blacklist
+                            var blackListEntry = new BlackList { IPAddress = ipAddress, IsBlocked = true };
+                            _db.BlackLists.Add(blackListEntry);
+                            await _db.SaveChangesAsync();
+
+                            // Update UI collection
+                            _blackList.Add(blackListEntry);
+
+                            // Remove from detected machines if present
+                            var detectedMachine = _detectedMachines.FirstOrDefault(m => m.IPAddress == ipAddress);
+                            if (detectedMachine != null)
+                            {
+                                _detectedMachines.Remove(detectedMachine);
+                            }
+
+                            successCount++;
+                        }
+                        catch { /* Skip failed IPs */ }
+                    }
+
+                    System.Windows.MessageBox.Show($"Added {successCount} of {dialog.IPAddresses.Count} IP address(es) to blacklist.", "Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    this.Cursor = System.Windows.Input.Cursors.Arrow;
+                }
+            }
+        }
+
+        private void RemoveMachine_BlackList(object sender, RoutedEventArgs e)
+        {
+            if (LBBlacklist.SelectedItem is BlackList selectedBlack)
+            {
+                try
+                {
+                    // Remove from blacklist
+                    _db.BlackLists.Remove(selectedBlack);
+                    _db.SaveChanges();
+                    // Remove from UI collection
+                    _blackList.Remove(selectedBlack);
+
+                    System.Windows.MessageBox.Show($"IP {selectedBlack.IPAddress} has been removed from the blacklist.", "Blacklist Updated", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Error updating blacklist: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                System.Windows.MessageBox.Show("Please select an IP address from the blacklist first.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
     }
