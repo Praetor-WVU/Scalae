@@ -109,10 +109,19 @@ namespace Scalae
             var list = _db.ClientMachines.AsNoTracking().ToList();
             _machines = new ObservableCollection<ClientMachine>(list);
 
+            // Load whitelist and blacklist from database
+            var whiteListData = _db.WhiteLists.AsNoTracking().ToList();
+            _whiteList = new ObservableCollection<WhiteList>(whiteListData);
+            
+            var blackListData = _db.BlackLists.AsNoTracking().ToList();
+            _blackList = new ObservableCollection<BlackList>(blackListData);
+
             // Bind the collection to the ListBox
             ListBoxMachines.ItemsSource = _machines;
             ListBoxHistory.ItemsSource = _machines;
             LBDetected.ItemsSource = _detectedMachines;
+            LBWhitelist.ItemsSource = _whiteList;
+            LBBlacklist.ItemsSource = _blackList;
 
             // Start the periodic collection loop, closes on main window close.
             StartPeriodicCollection();
@@ -493,6 +502,78 @@ namespace Scalae
                     "No Selection",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
+            }
+        }
+
+        private async void AddMachine_WhiteList(object sender, RoutedEventArgs e)
+        {
+            var dialog = new AddWhitelistDialog { Owner = this };
+    
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    this.Cursor = System.Windows.Input.Cursors.Wait;
+                    int successCount = 0;
+
+                    foreach (var ipAddress in dialog.IPAddresses)
+                    {
+                        try
+                        {
+                            // Skip if already in database
+                            if (_db.ClientMachines.Any(m => m.IPAddress == ipAddress))
+                                continue;
+
+                            // Skip if blacklisted
+                            if (_db.BlackLists.Any(b => b.IPAddress == ipAddress))
+                                continue;
+
+                            // Skip if already whitelisted
+                            if (_db.WhiteLists.Any(w => w.IPAddress == ipAddress))
+                                continue;
+
+                            // Detect machine
+                            var machine = await Task.Run(() => 
+                                ClientDetection.ClientDetectIP(ipAddress, timeoutMs: 5000));
+
+                            if (machine == null) continue;
+
+                            // Add to database and collect metrics
+                            _db.ClientMachines.Add(machine);
+                            await _db.SaveChangesAsync();
+
+                            var data = await Task.Run(() => _collector.CollectFull(machine));
+                            _monitoringService.UpdateAndSaveMetrics(machine, data);
+
+                            // Add to whitelist
+                            _db.WhiteLists.Add(new WhiteList { IPAddress = ipAddress, IsAllowed = true });
+                            await _db.SaveChangesAsync();
+
+                            // Update UI
+                            _machines.Add(machine);
+                            successCount++;
+                        }
+                        catch { /* Skip failed IPs */ }
+                    }
+
+                    System.Windows.MessageBox.Show(
+                        $"Added {successCount} of {dialog.IPAddresses.Count} machine(s) to monitoring.",
+                        "Complete",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Error: {ex.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+                finally
+                {
+                    this.Cursor = System.Windows.Input.Cursors.Arrow;
+                }
             }
         }
     }

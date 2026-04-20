@@ -64,16 +64,16 @@
                                     </Charting:Chart.Series>
                                 </Charting:Chart>
                                 <StackPanel Grid.Column="1">
-                                    <Label Content="Client" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                                    <Label Content="Client" FontSize="16" FontWeight="Bold" Margin="0,0,0,10" Foreground="Black"/>
                                     <TextBlock Text="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" Height="45"/>
 
-                                    <Label Content="CPU" FontSize="16" FontWeight="Bold"/>
+                                    <Label Content="CPU" FontSize="16" FontWeight="Bold" Foreground="Black"/>
                                     <TextBlock Text="{Binding SelectedItem.LastCpuModel, ElementName=ListBoxMachines}" Height="63" TextWrapping="Wrap"/>
 
-                                    <Label Content="RAM" FontSize="16" FontWeight="Bold"/>
+                                    <Label Content="RAM" FontSize="16" FontWeight="Bold" Foreground="Black"/>
                                     <TextBlock Text="{Binding SelectedItem.LastRamModel, ElementName=ListBoxMachines}" Height="46"/>
 
-                                    <Label Content="GPU" FontSize="16" FontWeight="Bold"/>
+                                    <Label Content="GPU" FontSize="16" FontWeight="Bold" Foreground="Black"/>
                                     <TextBlock Text="{Binding SelectedItem.LastGpuModel, ElementName=ListBoxMachines}" Height="49" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Grid>
@@ -217,8 +217,16 @@
                         
                         <Label Content="Whitelist"  Grid.Row="0"/>
                         <Grid Grid.Row="1" Grid.ColumnSpan="4">
-                           
-                            <ListBox x:Name="LBWhitelist" Background="#63b4d1" Grid.ColumnSpan="4" Grid.Row="1"/>
+
+                            <ListBox x:Name="LBWhitelist" Background="#63b4d1" Grid.ColumnSpan="4" Grid.Row="1">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Vertical" Margin="4">
+                                          <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="Black"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
                         </Grid>
                         <Grid Grid.Row="2" Grid.ColumnSpan="4">
                             <Grid.ColumnDefinitions>
@@ -227,7 +235,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Content="Add" Height="30"/>
+                                <Button Grid.Column="0" Content="Add" Height="30" Click="AddMachine_WhiteList"/>
                                 <Button Grid.Column="1" Content="Sync" Height="30"/>
                                 <Button Grid.Column="2" Content="Remove" Height="30"/>
                             <CheckBox Grid.Column="3" Content="Suspend" Height="30"/>
@@ -299,3 +307,5 @@
     </Grid>
     
 </Window>
+    
+    
