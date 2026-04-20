@@ -11,8 +11,8 @@
         Title="Scalae" Background="#480355" Height="618" Width="938" MinHeight="600" MinWidth="600">
     <Grid ClipToBounds="True" Margin="0,0,0,67">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="877*"/>
-            <ColumnDefinition Width="534*"/>
+            <ColumnDefinition Width="0.60*"/>
+            <ColumnDefinition Width="0.40*"/>
         </Grid.ColumnDefinitions>
         <TabControl SelectionChanged="TabControl_SelectionChanged" Background="#9448bc" Grid.ColumnSpan="2" Margin="20,20,20,20" Padding="10,10,10,10">
             <TabItem Header="Client Info" Height="22" Margin="5,1,-9,0" VerticalAlignment="Top">
@@ -22,9 +22,7 @@
                         <ColumnDefinition Width=".9*"/>
                     </Grid.ColumnDefinitions>
                     <!-- Named ListBox so code-behind can bind ItemsSource, I made it to where it read from the computer list might need to change where this si done for mvvm -->
-                    <ListBox Grid.Column="0" Background="#63b4d1" x:Name="ListBoxMachines"
-                             SelectionChanged="ListBox_SelectionChanged"
-                             Margin="0,0,0,0" MinWidth="0">
+                    <ListBox Grid.Column="0" Background="#63b4d1" x:Name="ListBoxMachines" SelectionChanged="ListBox_SelectionChanged" Margin="0,0,0,0" MinWidth="0">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Vertical" Margin="4">
@@ -36,8 +34,8 @@
                     </ListBox>
                     <Grid Grid.Column="1" Background="#90fcf9" Margin="0,0,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width=".5*"/>
-                            <ColumnDefinition Width=".5*"/>
+                            <ColumnDefinition Width=".7*"/>
+                            <ColumnDefinition Width=".3*"/>
                         </Grid.ColumnDefinitions>
 
                         <GroupBox Header="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" BorderBrush="Black" Margin="5,5,5,5" IsEnabled="False" HorizontalContentAlignment="Stretch" Grid.ColumnSpan="2">
@@ -45,17 +43,14 @@
 
                             <Grid Background="#7699D4" Margin="0,5,0,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="0.8*"/>
-                                    <ColumnDefinition Width="0.2*"/>
+                                    <ColumnDefinition Width="0.6*"/>
+                                    <ColumnDefinition Width="0.4*"/>
                                 </Grid.ColumnDefinitions>
 
 
                                 <Charting:Chart Grid.Column="0" Title="CPU Utilization" HorizontalAlignment="Left" x:Name="CpuChart" ScrollViewer.HorizontalScrollBarVisibility="Auto" Width="484">
                                     <Charting:Chart.Series>
-                                        <Charting:ColumnSeries
-                                            Title="Hardware %"
-                                            IndependentValuePath="Key"
-                                            DependentValuePath="Value"
+                                        <Charting:ColumnSeries Title="Hardware %" IndependentValuePath="Key" DependentValuePath="Value"
                                             x:Name="HardwareSeries">
                                             <!-- Set the range of the Y-axis to 0-100% -->
                                             <Charting:ColumnSeries.DependentRangeAxis>
@@ -65,17 +60,17 @@
                                     </Charting:Chart.Series>
                                 </Charting:Chart>
                                 <StackPanel Grid.Column="1">
-                                    <Label Content="Client" FontSize="16" FontWeight="Bold" Margin="0,0,0,10" Foreground="Black"/>
-                                    <TextBlock Text="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" Height="45"/>
+                                    <Label Content="Client" FontSize="16" FontWeight="Bold" Foreground="Black"/>
+                                    <TextBlock Text="{Binding SelectedItem.Name, ElementName=ListBoxMachines}" Height="40" TextWrapping="Wrap"/>
 
                                     <Label Content="CPU" FontSize="16" FontWeight="Bold" Foreground="Black"/>
-                                    <TextBlock Text="{Binding SelectedItem.LastCpuModel, ElementName=ListBoxMachines}" Height="63" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding SelectedItem.LastCpuModel, ElementName=ListBoxMachines}" Height="40" TextWrapping="Wrap"/>
 
                                     <Label Content="RAM" FontSize="16" FontWeight="Bold" Foreground="Black"/>
-                                    <TextBlock Text="{Binding SelectedItem.LastRamModel, ElementName=ListBoxMachines}" Height="46"/>
+                                    <TextBlock Text="{Binding SelectedItem.LastRamModel, ElementName=ListBoxMachines}" Height="40" />
 
                                     <Label Content="GPU" FontSize="16" FontWeight="Bold" Foreground="Black"/>
-                                    <TextBlock Text="{Binding SelectedItem.LastGpuModel, ElementName=ListBoxMachines}" Height="49" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding SelectedItem.LastGpuModel, ElementName=ListBoxMachines}" Height="40" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Grid>
                         </GroupBox>
@@ -122,7 +117,7 @@
                             </Calendar.LayoutTransform>
                         </Calendar>
                         
-                        <Button Content="Clear Dates" Click="BtnClearDates_Click" Height="30" Width="80" Grid.Column="1"/>
+                        <Button Content="Clear Dates" Click="BtnClearDates_Click" Height="30" Width="80" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top"/>
 
                         
                         <ScottPlot:WpfPlot x:Name="WpfPlot1" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Margin="10,0,0,0"/>
@@ -174,11 +169,13 @@
 
                     <Grid Grid.Column="0" Margin="20,0,20,0">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height=".1*"/>
+                            <RowDefinition Height=".8*"/>
+                            <RowDefinition Height=".1*"/>
                         </Grid.RowDefinitions>
 
-                        <ListBox x:Name="LBDetected" Grid.Row="0" Background="#63b4d1" SelectionChanged="ListBox_SelectionChanged">
+                        <Label Content="Detected Machines" Grid.Row="0" Grid.ColumnSpan="4"/>
+                        <ListBox x:Name="LBDetected" Grid.Row="1" Background="#63b4d1" SelectionChanged="ListBox_SelectionChanged">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Vertical" Margin="4">
@@ -189,7 +186,7 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
 
-                        <Grid Grid.Row="1">
+                        <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
@@ -213,7 +210,7 @@
                             <RowDefinition Height="0.1*"/>
                         </Grid.RowDefinitions>
 
-                        <Label Content="Whitelist"  Grid.Row="0"/>
+                        <Label Content="Whitelisted Machines"  Grid.Row="0" Grid.ColumnSpan="4"/>
                         <Grid Grid.Row="1" Grid.ColumnSpan="4">
 
 
@@ -256,7 +253,7 @@
                             <RowDefinition Height="0.8*"/>
                             <RowDefinition Height="0.1*"/>
                         </Grid.RowDefinitions>
-                        <Label Content="Blacklist" Grid.Row="0"/>
+                        <Label Content="Blacklisted Machines" Grid.Row="0" Grid.ColumnSpan="4"/>
 
                         <ListBox x:Name="LBBlacklist" Background="#63b4d1" Grid.ColumnSpan="4" Grid.Row="1">
                             <ListBox.ItemTemplate>

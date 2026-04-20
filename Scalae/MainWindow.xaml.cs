@@ -447,19 +447,51 @@ namespace Scalae
             {
                 try
                 {
+                    // Check if machine exists in ClientMachines and remove it
+                    var existingMachine = _db.ClientMachines.FirstOrDefault(m => m.IPAddress == selectedMachine.IPAddress);
+                    if (existingMachine != null)
+                    {
+                        _db.ClientMachines.Remove(existingMachine);
+                        
+                        // Remove from UI collection
+                        var machineInCollection = _machines.FirstOrDefault(m => m.IPAddress == selectedMachine.IPAddress);
+                        if (machineInCollection != null)
+                        {
+                            _machines.Remove(machineInCollection);
+                        }
+                    }
+
+                    // Check if IP exists in whitelist and remove it
+                    var existingWhitelist = _db.WhiteLists.FirstOrDefault(w => w.IPAddress == selectedMachine.IPAddress);
+                    if (existingWhitelist != null)
+                    {
+                        _db.WhiteLists.Remove(existingWhitelist);
+                        
+                        // Remove from UI collection
+                        var whitelistInCollection = _whiteList.FirstOrDefault(w => w.IPAddress == selectedMachine.IPAddress);
+                        if (whitelistInCollection != null)
+                        {
+                            _whiteList.Remove(whitelistInCollection);
+                        }
+                    }
+
                     // Add to blacklist
-                    _db.BlackLists.Add(new BlackList
+                    var blackListEntry = new BlackList
                     {
                         IPAddress = selectedMachine.IPAddress,
                         IsBlocked = true
-                    });
+                    };
+                    _db.BlackLists.Add(blackListEntry);
 
-                    _db.SaveChanges();
+                    await _db.SaveChangesAsync();
+
+                    // Update blacklist UI collection
+                    _blackList.Add(blackListEntry);
 
                     // Remove from detected machines
                     _detectedMachines.Remove(selectedMachine);
 
-                    System.Windows.MessageBox.Show($"Machine {selectedMachine.Name} ({selectedMachine.IPAddress}) has been blacklisted.", "Machine Blacklisted", MessageBoxButton.OK, MessageBoxImage.Information);
+                    System.Windows.MessageBox.Show($"Machine {selectedMachine.Name} ({selectedMachine.IPAddress}) has been blacklisted and removed from monitoring.", "Machine Blacklisted", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -469,9 +501,7 @@ namespace Scalae
             else
             {
                 System.Windows.MessageBox.Show("Please select a machine from the detected list first.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Warning);  
-
             }
-
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -573,6 +603,34 @@ namespace Scalae
                             if (_db.BlackLists.Any(b => b.IPAddress == ipAddress))
                                 continue;
 
+                            // Check if machine exists in ClientMachines and remove it
+                            var existingMachine = _db.ClientMachines.FirstOrDefault(m => m.IPAddress == ipAddress);
+                            if (existingMachine != null)
+                            {
+                                _db.ClientMachines.Remove(existingMachine);
+                                
+                                // Remove from UI collection
+                                var machineInCollection = _machines.FirstOrDefault(m => m.IPAddress == ipAddress);
+                                if (machineInCollection != null)
+                                {
+                                    _machines.Remove(machineInCollection);
+                                }
+                            }
+
+                            // Check if IP exists in whitelist and remove it
+                            var existingWhitelist = _db.WhiteLists.FirstOrDefault(w => w.IPAddress == ipAddress);
+                            if (existingWhitelist != null)
+                            {
+                                _db.WhiteLists.Remove(existingWhitelist);
+                                
+                                // Remove from UI collection
+                                var whitelistInCollection = _whiteList.FirstOrDefault(w => w.IPAddress == ipAddress);
+                                if (whitelistInCollection != null)
+                                {
+                                    _whiteList.Remove(whitelistInCollection);
+                                }
+                            }
+
                             // Add to blacklist
                             var blackListEntry = new BlackList { IPAddress = ipAddress, IsBlocked = true };
                             _db.BlackLists.Add(blackListEntry);
@@ -593,7 +651,7 @@ namespace Scalae
                         catch { /* Skip failed IPs */ }
                     }
 
-                    System.Windows.MessageBox.Show($"Added {successCount} of {dialog.IPAddresses.Count} IP address(es) to blacklist.", "Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    System.Windows.MessageBox.Show($"Added {successCount} of {dialog.IPAddresses.Count} IP address(es) to blacklist. Any monitored machines and whitelist entries were removed.", "Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -766,12 +824,13 @@ namespace Scalae
 
         private void UpdateStatistics(double[] cpuData, double[] ramData, double[] gpuData)
         {
-            // CPU Statistics
-            if (cpuData != null && cpuData.Length > 0)
+            // CPU Statistics - filter out invalid values
+            var validCpuData = cpuData?.Where(x => x >= 0 && x <= 100).ToArray();
+            if (validCpuData != null && validCpuData.Length > 0)
             {
-                AverageCpuUtilization.Text = $"{cpuData.Average():F2}%";
-                MaxCpuUtilization.Text = $"{cpuData.Max():F2}%";
-                MinCpuUtilization.Text = $"{cpuData.Min():F2}%";
+                AverageCpuUtilization.Text = $"{validCpuData.Average():F2}%";
+                MaxCpuUtilization.Text = $"{validCpuData.Max():F2}%";
+                MinCpuUtilization.Text = $"{validCpuData.Min():F2}%";
             }
             else
             {
@@ -780,12 +839,13 @@ namespace Scalae
                 MinCpuUtilization.Text = "N/A";
             }
 
-            // RAM Statistics
-            if (ramData != null && ramData.Length > 0)
+            // RAM Statistics - filter out invalid values
+            var validRamData = ramData?.Where(x => x >= 0 && x <= 100).ToArray();
+            if (validRamData != null && validRamData.Length > 0)
             {
-                AverageRamUtilization.Text = $"{ramData.Average():F2}%";
-                MaxRamUtilization.Text = $"{ramData.Max():F2}%";
-                MinRamUtilization.Text = $"{ramData.Min():F2}%";
+                AverageRamUtilization.Text = $"{validRamData.Average():F2}%";
+                MaxRamUtilization.Text = $"{validRamData.Max():F2}%";
+                MinRamUtilization.Text = $"{validRamData.Min():F2}%";
             }
             else
             {
@@ -794,12 +854,13 @@ namespace Scalae
                 MinRamUtilization.Text = "N/A";
             }
 
-            // GPU Statistics
-            if (gpuData != null && gpuData.Length > 0)
+            // GPU Statistics - filter out invalid values
+            var validGpuData = gpuData?.Where(x => x >= 0 && x <= 100).ToArray();
+            if (validGpuData != null && validGpuData.Length > 0)
             {
-                AverageGpuUtilization.Text = $"{gpuData.Average():F2}%";
-                MaxGpuUtilization.Text = $"{gpuData.Max():F2}%";
-                MinGpuUtilization.Text = $"{gpuData.Min():F2}%";
+                AverageGpuUtilization.Text = $"{validGpuData.Average():F2}%";
+                MaxGpuUtilization.Text = $"{validGpuData.Max():F2}%";
+                MinGpuUtilization.Text = $"{validGpuData.Min():F2}%";
             }
             else
             {
