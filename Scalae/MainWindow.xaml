@@ -297,9 +297,9 @@
                             <RowDefinition Height="0.3*"/>
                         </Grid.RowDefinitions>
 
-                        <ScottPlot:WpfPlot x:Name="graph1" Grid.Row="0" Margin="10,0,0,0"/>
-                        <ScottPlot:WpfPlot x:Name="graph2" Grid.Row="1" Margin="10,0,0,0"/>
-                        <ScottPlot:WpfPlot x:Name="graph3" Grid.Row="2" Margin="10,0,0,0"/>
+                        <ScottPlot:WpfPlot x:Name="graph1" Grid.Row="0" Margin="10,10,10,5"/>
+                        <ScottPlot:WpfPlot x:Name="graph2" Grid.Row="1" Margin="10,5,10,5"/>
+                        <ScottPlot:WpfPlot x:Name="graph3" Grid.Row="2" Margin="10,5,10,10"/>
                     </Grid>
 
                     <!--<ScottPlot:WpfPlot x:Name="graph1" Grid.Column="1" Grid.Row="0" Margin="10,0,0,0"/>-->
