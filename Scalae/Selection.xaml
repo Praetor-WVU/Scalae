@@ -19,7 +19,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <ListBox x:Name="LBSelected" Grid.Row="0" Background="AliceBlue" >
+            <ListBox x:Name="LBSelected" Grid.Row="0" Background="white" >
                 <!-- Color is only temp for testing purposes-->
                 <ListBox.ItemTemplate>
                     <DataTemplate>
