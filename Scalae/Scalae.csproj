@@ -41,6 +41,7 @@
 
   <ItemGroup>
     <Folder Include="Data\Repositories\Memory\" />
+    <Folder Include="Images\" />
   </ItemGroup>
 
 </Project>
