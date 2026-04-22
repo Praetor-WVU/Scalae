@@ -334,25 +334,14 @@
 
                     </Grid>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 
                     <Grid  Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="1" Grid.RowSpan="1">
                         <Image Source="/Images/ScalaeLogo.png" Opacity=".6" Margin="0,0,0,0"/>
-=======
-=======
->>>>>>> 1321634c057f583f1117fe5bc7ba8213c5e61e32
-                    <Grid Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="0" Grid.RowSpan="2">
 
-                        <Image Source="/Images/Scalae Logo.png" Margin="0,0,0,-44"/>
-
-<<<<<<< HEAD
->>>>>>> 1321634c057f583f1117fe5bc7ba8213c5e61e32
-=======
->>>>>>> 1321634c057f583f1117fe5bc7ba8213c5e61e32
                     </Grid>
 
-                    <Grid Grid.Column="2" Grid.Row="2">
+                        <Grid Grid.Column="2" Grid.Row="2">
                         <Button Content="Save" HorizontalAlignment="Center" VerticalAlignment="Top" Height="38" Width="58"/>
                         <!--Needs on click event-->
                     </Grid>
