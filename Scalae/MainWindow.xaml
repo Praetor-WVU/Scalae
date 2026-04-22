@@ -334,14 +334,9 @@
                         <PasswordBox PasswordChar="*" MaxLength="10"  Margin="10,84,87,256" />
                     </Grid>
 
-<<<<<<< HEAD
-                    <Grid Grid.Column="1" Grid.ColumnSpan="1" Grid.Row="0" Grid.RowSpan="2">
-                        <Image Source="/Images/Scalae Logo.png" Margin="0,0,0,-44" Width="400" Height="400"/>
-=======
-
                     <Grid Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="0" Grid.RowSpan="2">
-                        <Image Source="/Images/Scalae Logo.png" Margin="0,0,0,-44"/>
->>>>>>> d0ea5fff5632dcd6340d35511b6261670383881e
+                            <Image Source="/Images/Scalae Logo.png" Margin="0,0,0,-44"/>
+
                     </Grid>
 
                     <Grid Grid.Column="2" Grid.Row="2">
