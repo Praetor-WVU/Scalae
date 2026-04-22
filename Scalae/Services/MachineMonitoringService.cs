@@ -34,26 +34,40 @@ namespace Scalae.Services
             if (collectedData == null || collectedData.Length < 2)
                 throw new ArgumentException("Invalid collected data format", nameof(collectedData));
 
-           
+            try
+            {
+                machine.LastCpuModel = collectedData[0][0];
+                machine.LastRamModel = collectedData[0][1];
+                machine.LastGpuModel = collectedData[0][2];
+                
+                // Parse utilization values
+                var cpuUtil = ParseUtilization(collectedData[1][0]);
+                var ramUtil = ParseUtilization(collectedData[1][1]);
+                var gpuUtil = ParseUtilization(collectedData[1][2]);
+                
+                // Only set valid utilization values (null for invalid ones)
+                machine.LastCpuUtilization = IsValidUtilization(cpuUtil) ? cpuUtil : null;
+                machine.LastRamUtilization = IsValidUtilization(ramUtil) ? ramUtil : null;
+                machine.LastGpuUtilization = IsValidUtilization(gpuUtil) ? gpuUtil : null;
+                machine.LastDataCollectionTime = DateTime.Now;
 
-            machine.LastCpuModel = collectedData[0][0];
-            machine.LastCpuUtilization = ParseUtilization(collectedData[1][0]);
-            machine.LastRamModel = collectedData[0][1];
-            machine.LastRamUtilization = ParseUtilization(collectedData[1][1]);
-            machine.LastGpuModel = collectedData[0][2];
-            machine.LastGpuUtilization = ParseUtilization(collectedData[1][2]);
-            machine.LastDataCollectionTime = DateTime.Now;
-
-            _repository.Update(machine);
- 
-            CreateHistoryEntryAsync(machine);
-
+                // Update the machine in the database
+                _repository.Update(machine);
+                
+                // Create history entry
+                CreateHistoryEntryAsync(machine);
+            } 
+            catch (Exception ex) 
+            {
+                Debug.WriteLine($"[MachineMonitoringService] Error updating machine: {ex.Message}");
+                throw;
+            }
         }
 
         private static double ParseUtilization(string value)
         {
-            if (string.IsNullOrWhiteSpace(value) || value == "N/A")
-                return double.NaN; // Use NaN instead of -1 for invalid data
+            if (string.IsNullOrWhiteSpace(value) || value == "N/A" || value == "-1")
+                return double.NaN;
 
             return double.TryParse(value.Replace("%", ""), out var result)
                 ? result
@@ -70,7 +84,7 @@ namespace Scalae.Services
                 Debug.WriteLine($"[MachineMonitoringService] Skipping history entry for {machine.Name} - no valid metrics");
                 return;
             }
-
+            
             var historyEntry = new MachineHistory
             {
                 TimeStamp = machine.LastDataCollectionTime ?? DateTime.Now,
@@ -89,7 +103,7 @@ namespace Scalae.Services
 
         private static bool IsValidUtilization(double? value)
         {
-            return value.HasValue && !double.IsNaN(value.Value) && value.Value >= 0 && value.Value <= 100;
+            return value.HasValue && !double.IsNaN(value.Value) && !double.IsInfinity(value.Value) && value.Value >= 0 && value.Value <= 100;
         }
 
         //Call to retun a list of the history of a machine, used in the UI to display the history of a machine (returns entries for passed param name)

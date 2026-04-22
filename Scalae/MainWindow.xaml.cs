@@ -53,7 +53,7 @@ namespace Scalae
         // timer fields
         private PeriodicTimer? _periodicTimer;
         private CancellationTokenSource? _timerCts;
-        private readonly TimeSpan _collectionInterval = TimeSpan.FromMinutes(.1);
+        private readonly TimeSpan _collectionInterval = TimeSpan.FromMinutes(.05);
         private readonly SemaphoreSlim _collectLock = new SemaphoreSlim(1, 1);
         // Default constructor preserves existing behavior
         public MainWindow() : this(new Database_Context(), new DataCollection())
