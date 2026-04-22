@@ -75,9 +75,9 @@ namespace Scalae.Services
             {
                 TimeStamp = machine.LastDataCollectionTime ?? DateTime.Now,
                 Name = machine.Name,
-                CpuUtilization = IsValidUtilization(machine.LastCpuUtilization) ? machine.LastCpuUtilization : null,
-                RamUtilization = IsValidUtilization(machine.LastRamUtilization) ? machine.LastRamUtilization : null,
-                GpuUtilization = IsValidUtilization(machine.LastGpuUtilization) ? machine.LastGpuUtilization : null
+                CpuUtilization = IsValidUtilization(machine.LastCpuUtilization) ? machine.LastCpuUtilization : 0,
+                RamUtilization = IsValidUtilization(machine.LastRamUtilization) ? machine.LastRamUtilization : 0,
+                GpuUtilization = IsValidUtilization(machine.LastGpuUtilization) ? machine.LastGpuUtilization : 0
             };
 
             _historyRepository.Create(historyEntry);
@@ -101,13 +101,7 @@ namespace Scalae.Services
             return hist;
         }
 
-        /// <summary>
-        /// Verifies and returns a list of newly detected machines that are not already in the repository.
-        /// This is a helper method for client detection workflow.
-        /// </summary>
-        /// <param name="detectedMachines">List of machines detected via ClientDetection</param>
-        /// <returns>Collection of new machines not yet in the database</returns>
-        public ObservableCollection<ClientMachine> newMachineVerify(IEnumerable<ClientMachine> detectedMachines)
+         public ObservableCollection<ClientMachine> newMachineVerify(IEnumerable<ClientMachine> detectedMachines)
         {
             if (detectedMachines == null)
                 throw new ArgumentNullException(nameof(detectedMachines));
