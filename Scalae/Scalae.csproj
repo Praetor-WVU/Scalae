@@ -13,6 +13,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Images\ScalaeLogo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Images\ScalaeLogo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Models\ClientDetection.cs" />
   </ItemGroup>
 
@@ -41,7 +51,6 @@
 
   <ItemGroup>
     <Folder Include="Data\Repositories\Memory\" />
-    <Folder Include="Images\" />
   </ItemGroup>
 
 </Project>
