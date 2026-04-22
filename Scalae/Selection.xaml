@@ -5,13 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Scalae"
         mc:Ignorable="d"
-        Title="Selection" Height="450" Width="800">
+        Title="Selection" Height="300" Width="300">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.20*"/>
-            <ColumnDefinition Width="0.70*"/>
-            <ColumnDefinition Width="0.10*"/>
+            <ColumnDefinition Width="0.20*"/>
+            <ColumnDefinition Width="0.20*"/>
         </Grid.ColumnDefinitions>
+
+        
 
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
@@ -19,7 +21,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <ListBox x:Name="LBSelected" Grid.Row="0" Background="white" >
+            <ListBox x:Name="LBSelected" Grid.Row="0" Background="LightGray" >
                 <!-- Color is only temp for testing purposes-->
                 <ListBox.ItemTemplate>
                     <DataTemplate>
@@ -33,7 +35,7 @@
         </Grid>
         <!--Column 0 grid-->
 
-        <Grid Grid.Column="1" HorizontalAlignment="Left">
+        <Grid Grid.Column="1" HorizontalAlignment="Left" Width="100">
             <StackPanel>
                 <CheckBox x:Name="Graph1" Content="Graph 1"/>
                 <CheckBox x:Name="Graph2" Content="Graph 2"/>
@@ -43,12 +45,12 @@
 
         <Grid Grid.Column="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height=".40*"/>
+                <RowDefinition Height=".60*"/>
             </Grid.RowDefinitions>
 
-            <Button Grid.Row="0" Content="Save"  HorizontalAlignment="Left" Margin="10,10,0,404" Grid.RowSpan="2"/>
-            <!-- Save button will also close the window-->
+            <Button Grid.Row="0" Content="Save" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,10,10,10" Grid.RowSpan="2"/>
+            <!--  needs on click event, Save button will also close the window-->
         </Grid>
 
     </Grid>
