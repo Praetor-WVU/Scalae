@@ -8,7 +8,7 @@ namespace Scalae.Models
     {
         public int Id { get; set; }
         public string? Name { get; set; }
-        public string? MACAddress { get; set; }  // ← Changed to nullable
+        public string? MACAddress { get; set; }  
         public string? IPAddress { get; set; }
         public string? OperatingSystem { get; set; }
         public bool IsActive { get; set; }
@@ -18,6 +18,7 @@ namespace Scalae.Models
         public double? LastCpuUtilization { get; set; }
         public string? LastGpuModel { get; set; }
         public double? LastGpuUtilization { get; set; }
+        public string? LastRamModel { get; set; }  
         public double? LastRamUtilization { get; set; }
         public DateTime? LastDataCollectionTime { get; set; }
 

@@ -38,6 +38,7 @@ namespace Scalae.Services
 
             machine.LastCpuModel = collectedData[0][0];
             machine.LastCpuUtilization = ParseUtilization(collectedData[1][0]);
+            machine.LastRamModel = collectedData[0][1];
             machine.LastRamUtilization = ParseUtilization(collectedData[1][1]);
             machine.LastGpuModel = collectedData[0][2];
             machine.LastGpuUtilization = ParseUtilization(collectedData[1][2]);
@@ -51,23 +52,32 @@ namespace Scalae.Services
 
         private static double ParseUtilization(string value)
         {
-            return double.TryParse(
-                value.Replace("%", "").Replace("N/A", "-1"),
-                out var result)
-                    ? result
-                    : -1;
+            if (string.IsNullOrWhiteSpace(value) || value == "N/A")
+                return double.NaN; // Use NaN instead of -1 for invalid data
+
+            return double.TryParse(value.Replace("%", ""), out var result)
+                ? result
+                : double.NaN;
         }
 
         public void CreateHistoryEntryAsync(ClientMachine machine)
         {
+            // Only create history entry if at least one valid metric exists
+            if (!IsValidUtilization(machine.LastCpuUtilization) && 
+                !IsValidUtilization(machine.LastRamUtilization) && 
+                !IsValidUtilization(machine.LastGpuUtilization))
+            {
+                Debug.WriteLine($"[MachineMonitoringService] Skipping history entry for {machine.Name} - no valid metrics");
+                return;
+            }
 
             var historyEntry = new MachineHistory
             {
                 TimeStamp = machine.LastDataCollectionTime ?? DateTime.Now,
                 Name = machine.Name,
-                CpuUtilization = machine.LastCpuUtilization,
-                RamUtilization = machine.LastRamUtilization,
-                GpuUtilization = machine.LastGpuUtilization
+                CpuUtilization = IsValidUtilization(machine.LastCpuUtilization) ? machine.LastCpuUtilization : null,
+                RamUtilization = IsValidUtilization(machine.LastRamUtilization) ? machine.LastRamUtilization : null,
+                GpuUtilization = IsValidUtilization(machine.LastGpuUtilization) ? machine.LastGpuUtilization : null
             };
 
             _historyRepository.Create(historyEntry);
@@ -75,6 +85,11 @@ namespace Scalae.Services
             Debug.WriteLine($"[MachineMonitoringService] Created history entry: Name={historyEntry.Name}, Time={historyEntry.TimeStamp}, Id={historyEntry.Id}");
 
           
+        }
+
+        private static bool IsValidUtilization(double? value)
+        {
+            return value.HasValue && !double.IsNaN(value.Value) && value.Value >= 0 && value.Value <= 100;
         }
 
         //Call to retun a list of the history of a machine, used in the UI to display the history of a machine (returns entries for passed param name)
