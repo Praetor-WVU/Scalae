@@ -55,6 +55,10 @@ namespace Scalae
         private CancellationTokenSource? _timerCts;
         private readonly TimeSpan _collectionInterval = TimeSpan.FromMinutes(.05);
         private readonly SemaphoreSlim _collectLock = new SemaphoreSlim(1, 1);
+
+        // Track user zoom state for history plot
+        private bool _userHasZoomed = false;
+        private double _savedXMin, _savedXMax, _savedYMin, _savedYMax;
         // Default constructor preserves existing behavior
         public MainWindow() : this(new Database_Context(), new DataCollection())
         {
@@ -84,34 +88,57 @@ namespace Scalae
            
 
             DataContext = this; // Bind data to XAML
-            //^ Temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.Â 
+    //^ Temporary data for testing the chart, will be removed when we implement the actual data collection and chart updating logic.Â 
 
 
-            // Ensure DB and tables exist
-            _db.Database.EnsureCreated();
-            this.SizeToContent = SizeToContent.WidthAndHeight;
+    // Ensure DB and tables exist
+    _db.Database.EnsureCreated();
+    this.SizeToContent = SizeToContent.WidthAndHeight;
 
-            // Load data into an ObservableCollection so the UI updates when items change
-            var list = _db.ClientMachines.AsNoTracking().ToList();
-            _machines = new ObservableCollection<ClientMachine>(list);
+    // Load data into an ObservableCollection so the UI updates when items change
+    var list = _db.ClientMachines.AsNoTracking().ToList();
+    _machines = new ObservableCollection<ClientMachine>(list);
 
-            // Load whitelist and blacklist from database
-            var whiteListData = _db.WhiteLists.AsNoTracking().ToList();
-            _whiteList = new ObservableCollection<WhiteList>(whiteListData);
+    // Load whitelist and blacklist from database
+    var whiteListData = _db.WhiteLists.AsNoTracking().ToList();
+    _whiteList = new ObservableCollection<WhiteList>(whiteListData);
 
-            var blackListData = _db.BlackLists.AsNoTracking().ToList();
-            _blackList = new ObservableCollection<BlackList>(blackListData);
+    var blackListData = _db.BlackLists.AsNoTracking().ToList();
+    _blackList = new ObservableCollection<BlackList>(blackListData);
 
-            // Bind the collection to the ListBox
-            ListBoxMachines.ItemsSource = _machines;
-            ListBoxHistory.ItemsSource = _machines;
-            LBDetected.ItemsSource = _detectedMachines;
-            LBWhitelist.ItemsSource = _whiteList;
-            LBBlacklist.ItemsSource = _blackList;
+    // Bind the collection to the ListBox
+    ListBoxMachines.ItemsSource = _machines;
+    ListBoxHistory.ItemsSource = _machines;
+    LBDetected.ItemsSource = _detectedMachines;
+    LBWhitelist.ItemsSource = _whiteList;
+    LBBlacklist.ItemsSource = _blackList;
 
-            // Start the periodic collection loop, closes on main window close.
-            StartPeriodicCollection();
-            this.Closing += MainWindow_Closing;
+    // Initialize empty plot
+    Loaded += (s, e) =>
+    {
+        WpfPlot1.Plot.Title("Select a machine to view history");
+        WpfPlot1.Refresh();
+
+        // Track user zoom/pan interactions via mouse events
+        WpfPlot1.MouseUp += (s, e) =>
+        {
+            // User released mouse after potential zoom/pan
+            _userHasZoomed = true;
+            SaveCurrentZoom();
+        };
+
+        // Also track mouse wheel for zoom
+        WpfPlot1.MouseWheel += (s, e) =>
+        {
+            _userHasZoomed = true;
+            // Save zoom after a short delay to allow the plot to update
+            Task.Delay(50).ContinueWith(_ => Dispatcher.Invoke(SaveCurrentZoom));
+        };
+    };
+
+    // Start the periodic collection loop, closes on main window close.
+    StartPeriodicCollection();
+    this.Closing += MainWindow_Closing;
         }
 
         private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -207,14 +234,21 @@ namespace Scalae
                         existing.LastGpuUtilization = m.LastGpuUtilization;
                         existing.LastDataCollectionTime = m.LastDataCollectionTime;
 
-                        // Refresh chart if this is the currently selected machine
+                        // Refresh bar chart if this is the currently selected machine in Machines tab
                         if (ListBoxMachines.SelectedItem is ClientMachine selectedMachine &&
                             selectedMachine.IPAddress == m.IPAddress)
                         {
                             UpdateChart(existing);
                         }
 
-
+                        // Refresh history plot if this is the currently selected machine in History tab
+                        if (ListBoxHistory.SelectedItem is ClientMachine selectedHistoryMachine &&
+                            selectedHistoryMachine.IPAddress == m.IPAddress)
+                        {
+                            // Reload history data with the new data point
+                            _machineHistory = _monitoringService.GetHistoryList(selectedHistoryMachine.Name);
+                            ApplyDateFilterAndUpdatePlot();
+                        }
                     }
                 });
 
@@ -277,6 +311,9 @@ namespace Scalae
         {
             if (ListBoxHistory.SelectedItem is ClientMachine selectedMachine)
             {
+                // Reset zoom state when changing machines
+                _userHasZoomed = false;
+                
                 _machineHistory = _monitoringService.GetHistoryList(selectedMachine.Name);
                 
                 // Apply date filter and update plot
@@ -691,12 +728,18 @@ namespace Scalae
 
         private void HistoryCalendar_SelectedDatesChanged(object sender, SelectionChangedEventArgs e)
         {
+            // Reset zoom state when changing date filter
+            _userHasZoomed = false;
+            
             // Refresh plot when calendar selection changes
             ApplyDateFilterAndUpdatePlot();
         }
 
         private void BtnClearDates_Click(object sender, RoutedEventArgs e)
         {
+            // Reset zoom state when clearing dates
+            _userHasZoomed = false;
+            
             // Clear calendar selection to show all time
             HistoryCalendar.SelectedDates.Clear();
         }
@@ -776,9 +819,6 @@ namespace Scalae
             WpfPlot1.Plot.Axes.DateTimeTicksBottom();
             WpfPlot1.Plot.Axes.Left.Label.Text = "Utilization (%)";
             WpfPlot1.Plot.Axes.Bottom.Label.Text = "Time";
-            
-            // Set Y-axis range from 0 to 100
-            WpfPlot1.Plot.Axes.SetLimitsY(0, 100);
 
             // Add legend
             WpfPlot1.Plot.ShowLegend();
@@ -786,8 +826,13 @@ namespace Scalae
             // Build title with date range
             string titleSuffix = "";
 
-            // Set X-axis limits and interaction based on calendar selection
-            if (HistoryCalendar.SelectedDates.Count > 0)
+            // Set X-axis limits and interaction based on calendar selection OR user zoom
+            if (_userHasZoomed)
+            {
+                // Restore user's zoom level
+                RestoreZoom();
+            }
+            else if (HistoryCalendar.SelectedDates.Count > 0)
             {
                 var selectedDates = HistoryCalendar.SelectedDates.OrderBy(d => d).ToList();
                 var minDate = selectedDates.First().Date;
@@ -795,6 +840,7 @@ namespace Scalae
                 
                 // Lock X-axis to selected date range
                 WpfPlot1.Plot.Axes.SetLimitsX(minDate.ToOADate(), maxDate.ToOADate());
+                WpfPlot1.Plot.Axes.SetLimitsY(0, 100);
                 
                 if (selectedDates.Count == 1)
                 {
@@ -884,6 +930,23 @@ namespace Scalae
             AverageGpuUtilization.Text = "";
             MaxGpuUtilization.Text = "";
             MinGpuUtilization.Text = "";
+        }
+
+        private void SaveCurrentZoom()
+        {
+            var xLimits = WpfPlot1.Plot.Axes.GetLimits();
+            _savedXMin = xLimits.Left;
+            _savedXMax = xLimits.Right;
+            _savedYMin = xLimits.Bottom;
+            _savedYMax = xLimits.Top;
+        }
+
+        private void RestoreZoom()
+        {
+            if (_userHasZoomed)
+            {
+                WpfPlot1.Plot.Axes.SetLimits(_savedXMin, _savedXMax, _savedYMin, _savedYMax);
+            }
         }
     }
 }
