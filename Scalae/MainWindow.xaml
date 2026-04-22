@@ -335,8 +335,12 @@
                     </Grid>
 
                     <Grid Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="0" Grid.RowSpan="2">
+<<<<<<< HEAD
 
                         <Image Source="/Images/Scalae Logo.png" Margin="0,0,0,-44"/>
+=======
+                            <Image Source="/Images/Scalae Logo.png" Margin="0,0,0,-44"/>
+>>>>>>> a4323ae1594c8c5dc1b1152386d199c79c27deba
 
                     </Grid>
 
