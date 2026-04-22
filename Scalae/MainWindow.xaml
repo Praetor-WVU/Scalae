@@ -8,7 +8,11 @@
         xmlns:Charting="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=DotNetProjects.DataVisualization.Toolkit"
         xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         mc:Ignorable="d"
+        Icon="/Images/ScalaeLogo.png"
         Title="Scalae" Background="#480355" Height="618" Width="938" MinHeight="600" MinWidth="600">
+
+
+
     <Grid ClipToBounds="True" Margin="0,0,0,67">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.60*"/>
@@ -48,7 +52,7 @@
                                 </Grid.ColumnDefinitions>
 
 
-                                <Charting:Chart Grid.Column="0" Title="CPU Utilization" HorizontalAlignment="Left" x:Name="CpuChart" ScrollViewer.HorizontalScrollBarVisibility="Auto" Width="484">
+                                <Charting:Chart Grid.Column="0" Title="Hardware Utilization" HorizontalAlignment="Left" x:Name="CpuChart" ScrollViewer.HorizontalScrollBarVisibility="Auto" Width="484">
                                     <Charting:Chart.Series>
                                         <Charting:ColumnSeries Title="Hardware %" IndependentValuePath="Key" DependentValuePath="Value"
                                             x:Name="HardwareSeries">
