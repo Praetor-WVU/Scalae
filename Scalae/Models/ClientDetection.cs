@@ -21,6 +21,8 @@ using System.Security.Permissions;
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.ConstrainedExecution;
 using System.Security;
+using System.Net.Http;
+using System.Text.Json;
 
 namespace Scalae.Models
 {
@@ -31,14 +33,23 @@ namespace Scalae.Models
         public static string? DefaultRunAsUsername { get; set; } = null;
         public static string? DefaultRunAsPassword { get; set; } = null;
 
+        // Agent preferences: server can set these so discovery prefers contacting the agent's HTTP /info endpoint.
+        public static int AgentHttpPort { get; set; } = 37021;
+        public static string? AgentToken { get; set; } = "ScalaeWorks";
+
         private readonly ILogger<ClientDetection> _logger;
-        // Add a static logger for use inside static methods
-        private static readonly ILogger<ClientDetection> _staticLogger = NullLogger<ClientDetection>.Instance;
+        // Change the static readonly field to static (removable readonly) to allow assignment in SetStaticLogger
+        private static ILogger<ClientDetection> _staticLogger = NullLogger<ClientDetection>.Instance;
 
         // Accept the logging abstraction via constructor injection.
         public ClientDetection(ILoggingService? loggingService = null)
         {
             _logger = loggingService?.CreateLogger<ClientDetection>() ?? NullLogger<ClientDetection>.Instance;
+        }
+        
+        public static void SetStaticLogger(ILogger<ClientDetection> logger)
+        {
+            _staticLogger = logger;
         }
 
         private const int DiscoveryPort = 37020;
@@ -250,7 +261,7 @@ namespace Scalae.Models
 
         // Broadcast-based discovery: send UDP broadcasts and gather responses from clients/agents that implement the discovery protocol.
         // Returns zero or more discovered ClientMachine entries.
-        public static IEnumerable<ClientMachine> ClientDetectAuto(int timeoutMs = 3000, string? username = null, string? password = null)
+        public static async Task<IEnumerable<ClientMachine>> ClientDetectAutoAsync(int timeoutMs = 3000, string? username = null, string? password = null)
         {
             var discovered = new ConcurrentDictionary<string, ClientMachine>(StringComparer.OrdinalIgnoreCase);
 
@@ -305,7 +316,7 @@ namespace Scalae.Models
             }
             else
             {
-                udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+                udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, DiscoveryPort));
             }
             using var udp = udpClient;
             udp.EnableBroadcast = true;
@@ -378,6 +389,7 @@ namespace Scalae.Models
                     if (data == null || data.Length == 0) continue;
 
                     var resp = Encoding.UTF8.GetString(data).Trim();
+                    _staticLogger.LogInformation("Received UDP response from {IP}: {Response}", remoteEp.Address, resp);
                     string? name = null;
                     string? mac = null;
                     string? os = null;
@@ -423,12 +435,57 @@ namespace Scalae.Models
                         macAddress: NormalizeMac(mac),
                         ipAddress: ip,
                         operatingSystem: os,
-                        isActive: true
-                    );
+                        isActive: true // <-- set to true here, since UDP response was received
+);
 
                     // Use MAC if available as the unique key, otherwise IP
                     var key = NormalizeMac(cm.MACAddress) ?? (cm.IPAddress ?? Guid.NewGuid().ToString());
                     discovered.TryAdd(key, cm);
+
+                    // Try to contact an agent HTTP /info endpoint on the responder to get authoritative info.
+                    // This is non-blocking (short timeout) and will silently fall back to UDP-parsed values.
+                    try
+                    {
+                        _staticLogger.LogInformation("Received UDP response from {IP}: {Response}", remoteEp.Address, resp);
+                        var (agentName, agentMac, agentOs) = await TryGetAgentInfoAsync(ip);
+                        _staticLogger.LogInformation("Agent HTTP /info result for {IP}: Name={Name}, MAC={MAC}, OS={OS}", ip, agentName, agentMac, agentOs);
+
+                        // after agent probe returned values:
+                        if (!string.IsNullOrWhiteSpace(agentName) || !string.IsNullOrWhiteSpace(agentMac) || !string.IsNullOrWhiteSpace(agentOs))
+{
+    // update local variables
+    name = string.IsNullOrWhiteSpace(agentName) ? name : agentName;
+    mac  = string.IsNullOrWhiteSpace(agentMac)  ? mac  : agentMac;
+    os   = string.IsNullOrWhiteSpace(agentOs)   ? os   : agentOs;
+
+    // Update the previously-added ClientMachine entry in 'discovered'
+    var normalizedNewMac = NormalizeMac(mac);
+    var currentKey = key;
+    var newKey = normalizedNewMac ?? (ip ?? Guid.NewGuid().ToString());
+
+    // Try to replace existing entry atomically
+    if (discovered.TryGetValue(currentKey, out var existingCm))
+    {
+        existingCm.Name = name;
+        existingCm.MACAddress = NormalizeMac(mac);
+        existingCm.OperatingSystem = os;
+        existingCm.IsActive = true;
+
+        // If the unique key should be the MAC and it changed, rekey the dictionary
+        if (!string.Equals(currentKey, newKey, StringComparison.OrdinalIgnoreCase))
+        {
+            // remove old key and add new key (best-effort)
+            discovered.TryRemove(currentKey, out _);
+            discovered.TryAdd(newKey, existingCm);
+            key = newKey; // update local key variable if used later
+        }
+    }
+}
+                    }
+                    catch (Exception ex)
+                    {
+                        _staticLogger.LogDebug(ex, "Agent /info probe failed for {IP}; continuing with UDP values", ip);
+                    }
                 }
                 catch (SocketException sex)
                 {
@@ -451,353 +508,401 @@ namespace Scalae.Models
             // the process must be run under an account that has the rights to enumerate the
             // domain (for example a domain account). See comments in "GetWorkstationsViaNetServerEnum"
             // for more details.
-            try
+            // Skip NetServerEnum if we already discovered hosts via UDP/agent responses.
+            if (discovered.Count == 0)
             {
-                var workstationNames = GetWorkstationsViaNetServerEnum(username, password);
-                if (workstationNames.Count > 0)
+                try
                 {
-                    // Filter discovered entries to only include those that match workstation names
-                    var filtered = discovered.Values.Where(cm =>
+                    var workstationNames = GetWorkstationsViaNetServerEnum(username, password);
+                    if (workstationNames.Count > 0)
                     {
-                        if (!string.IsNullOrWhiteSpace(cm.Name) && workstationNames.Contains(cm.Name, StringComparer.OrdinalIgnoreCase))
-                            return true;
-                        // also try resolve IP to hostname
-                        if (!string.IsNullOrWhiteSpace(cm.IPAddress))
+                        // Filter discovered entries to only include those that match workstation names
+                        var filtered = discovered.Values.Where(cm =>
                         {
+                            if (!string.IsNullOrWhiteSpace(cm.Name) && workstationNames.Contains(cm.Name, StringComparer.OrdinalIgnoreCase))
+                                return true;
+                            // also try resolve IP to hostname
+                            if (!string.IsNullOrWhiteSpace(cm.IPAddress))
+                            {
+                                try
+                                {
+                                    var he = Dns.GetHostEntry(cm.IPAddress);
+                                    if (!string.IsNullOrWhiteSpace(he?.HostName) && workstationNames.Contains(he.HostName, StringComparer.OrdinalIgnoreCase))
+                                        return true;
+                                }
+                                catch { }
+                            }
+                            return false;
+                        }).ToList();
+
+                        // Add any workstation names not seen via UDP by attempting a DNS resolve + IP check
+                        foreach (var name in workstationNames)
+                        {
+                            if (filtered.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase)))
+                                continue;
                             try
                             {
-                                var he = Dns.GetHostEntry(cm.IPAddress);
-                                if (!string.IsNullOrWhiteSpace(he?.HostName) && workstationNames.Contains(he.HostName, StringComparer.OrdinalIgnoreCase))
-                                    return true;
+                                var entry = Dns.GetHostEntry(name);
+                                var addr = entry?.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+                                if (addr != null)
+                                {
+                                    // Pass through credentials so WMI queries inside ClientDetectIP can use them
+                                    var cm = ClientDetectIP(addr.ToString(), username, password);
+                                    filtered.Add(cm);
+                                }
                             }
                             catch { }
                         }
-                        return false;
-                    }).ToList();
 
-                    // Add any workstation names not seen via UDP by attempting a DNS resolve + IP check
-                    foreach (var name in workstationNames)
-                    {
-                        if (filtered.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase)))
-                            continue;
-                        try
-                        {
-                            var entry = Dns.GetHostEntry(name);
-                            var addr = entry?.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
-                            if (addr != null)
-                            {
-                                // Pass through credentials so WMI queries inside ClientDetectIP can use them
-                                var cm = ClientDetectIP(addr.ToString(), username, password);
-                                filtered.Add(cm);
-                            }
-                        }
-                        catch { }
+                        return filtered.OrderBy(d => d.IPAddress ?? string.Empty).ToArray();
                     }
-
-                    return filtered.OrderBy(d => d.IPAddress ?? string.Empty).ToArray();
+                }
+                catch (Exception ex)
+                {
+                    _staticLogger.LogDebug(ex, "NetServerEnum workstation augmentation failed; returning UDP-discovered entries");
                 }
             }
-            catch (Exception ex)
+            else
             {
-                _staticLogger.LogDebug(ex, "NetServerEnum workstation augmentation failed; returning UDP-discovered entries");
+                return discovered.Values.OrderBy(d => d.IPAddress ?? string.Empty).ToArray();
             }
 
             return discovered.Values.OrderBy(d => d.IPAddress ?? string.Empty).ToArray();
         }
 
-        // Use NetServerEnum to get a list of workstation names on the current domain/segment.
-        // This method returns host names for servers that have the SV_TYPE_WORKSTATION bit set.
-        // Note about credentials: NetServerEnum does not accept explicit username/password parameters.
-        // If enumeration of a domain requires credentials, run this process under an account
-        // that has permission to enumerate the domain (for example, a domain user). If you need
-        // to use explicit alternate credentials you must perform impersonation prior to calling
-        // this function or use other APIs that accept credentials.
-        private static HashSet<string> GetWorkstationsViaNetServerEnum(string? runAsUsername = null, string? runAsPassword = null)
+        private static (string? name, string? mac, string? os) TryGetAgentInfo(string ip)
         {
-            // Prefer explicit params but fall back to configured defaults
-            runAsUsername = string.IsNullOrWhiteSpace(runAsUsername) ? DefaultRunAsUsername : runAsUsername;
-            runAsPassword = runAsPassword ?? DefaultRunAsPassword;
-
-            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            IntPtr token = IntPtr.Zero;
-            SafeAccessTokenHandle? safeHandle = null;
             try
             {
-                // If credentials provided, attempt LogonUser and impersonation
-                if (!string.IsNullOrWhiteSpace(runAsUsername) && runAsPassword != null)
+                using var client = new HttpClient() { Timeout = TimeSpan.FromMilliseconds(2000) };
+                if (!string.IsNullOrWhiteSpace(AgentToken))
                 {
-                    var domain = ".";
-                    var user = runAsUsername;
-                    var idx = runAsUsername.IndexOf('\\');
-                    if (idx > 0)
-                    {
-                        domain = runAsUsername.Substring(0, idx);
-                        user = runAsUsername.Substring(idx + 1);
-                    }
-
-                    var ok = LogonUser(user, domain, runAsPassword, LOGON32_LOGON_NEW_CREDENTIALS, LOGON32_PROVIDER_WINNT50, out token);
-                    if (!ok)
-                    {
-                        var err = Marshal.GetLastWin32Error();
-                        _staticLogger.LogWarning("LogonUser failed with error {Err} for user {User}; continuing without impersonation", err, runAsUsername);
-                    }
-                    else
-                    {
-                        try
-                        {
-                            // Transfer ownership of the raw token into a SafeAccessTokenHandle to ensure safe cleanup.
-                            safeHandle = new SafeAccessTokenHandle(token);
-                            // Prevent double-close: mark the raw token as transferred
-                            token = IntPtr.Zero;
-                        }
-                        catch (Exception ex)
-                        {
-                            _staticLogger.LogWarning(ex, "Failed to create SafeAccessTokenHandle for user {User}; continuing without impersonation", runAsUsername);
-                            try { if (token != IntPtr.Zero) CloseHandle(token); } catch { }
-                            token = IntPtr.Zero;
-                            safeHandle = null;
-                        }
-                    }
+                    if (!client.DefaultRequestHeaders.Contains("X-Scalae-Token"))
+                        client.DefaultRequestHeaders.Add("X-Scalae-Token", AgentToken);
                 }
 
-                // NetServerEnum signature (level 101) via P/Invoke
-                IntPtr bufPtr = IntPtr.Zero;
-                try
-                {
-                    int entriesRead = 0;
-                    int totalEntries = 0;
+                var uri = new UriBuilder("http", ip, AgentHttpPort, "/info").Uri;
 
-                    // Wrap NetServerEnum call in impersonation if we have a safe handle
-                    Action doEnum = () =>
-                    {
-                        // servername = null for local computer domain; domain can be provided if desired
-                        int rc = NetServerEnum(null, 101, out bufPtr, -1, out entriesRead, out totalEntries, SV_TYPE_WORKSTATION, null, IntPtr.Zero);
-                        if (rc != NERR_Success || bufPtr == IntPtr.Zero || entriesRead == 0)
-                        {
-                            return;
-                        }
+                // Use async properly and wait synchronously in a way that avoids deadlocks
+                var respTask = client.GetAsync(uri);
+                respTask.Wait(); // Wait for completion
 
-                        var structSize = Marshal.SizeOf(typeof(SERVER_INFO_101));
-                        var current = bufPtr;
-                        for (int i = 0; i < entriesRead; i++)
-                        {
-                            var si = (SERVER_INFO_101)Marshal.PtrToStructure(current, typeof(SERVER_INFO_101))!;
-                            if (!string.IsNullOrWhiteSpace(si.sv101_name))
-                            {
-                                // Only add if the type includes workstation bit
-                                if ((si.sv101_type & SV_TYPE_WORKSTATION) == SV_TYPE_WORKSTATION)
-                                    result.Add(si.sv101_name);
-                            }
-                            current = IntPtr.Add(current, structSize);
-                        }
-                    };
+                var resp = respTask.Result;
+                if (!resp.IsSuccessStatusCode) return (null, null, null);
 
-                    if (safeHandle != null)
-                    {
-                        WindowsIdentity.RunImpersonated(safeHandle, doEnum);
-                    }
-                    else
-                    {
-                        doEnum();
-                    }
-                }
-                finally
-                {
-                    if (bufPtr != IntPtr.Zero)
-                        NetApiBufferFree(bufPtr);
-                }
+                var jsonTask = resp.Content.ReadAsStringAsync();
+                jsonTask.Wait();
+                var json = jsonTask.Result;
+
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                string? name = root.TryGetProperty("name", out var pName) ? pName.GetString() : null;
+                string? mac = root.TryGetProperty("mac", out var pMac) ? pMac.GetString() : null;
+                string? os = root.TryGetProperty("os", out var pOs) ? pOs.GetString() : null;
+
+                return (name, mac, os);
             }
-            finally
+            catch (AggregateException aggEx) when (aggEx.InnerException is TaskCanceledException)
             {
-                // Ensure safe handle is disposed and native token closed if not transferred.
-                try
-                {
-                    safeHandle?.Dispose();
-                }
-                catch { }
-
-                if (token != IntPtr.Zero)
-                {
-                    try { CloseHandle(token); } catch { }
-                }
+                _staticLogger.LogDebug(aggEx.InnerException, "Agent /info probe timed out for {IP}", ip);
+                return (null, null, null);
             }
-
-             _staticLogger.LogInformation("NetServerEnum returned {Count} workstation entries", result.Count);
-             return result;
-         }
-
-        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern bool LogonUser(
-            string lpszUsername,
-            string lpszDomain,
-            string lpszPassword,
-            int dwLogonType,
-            int dwLogonProvider,
-            out IntPtr phToken);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool CloseHandle(IntPtr hObject);
-
-        [DllImport("Netapi32", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern int NetServerEnum(
-             [MarshalAs(UnmanagedType.LPWStr)] string servername,
-             int level,
-             out IntPtr bufptr,
-             int prefmaxlen,
-             out int entriesread,
-             out int totalentries,
-             uint servertype,
-             [MarshalAs(UnmanagedType.LPWStr)] string domain,
-             IntPtr resume_handle);
-
-        [DllImport("Netapi32.dll")]
-        private static extern int NetApiBufferFree(IntPtr Buffer);
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct SERVER_INFO_101
-        {
-            public uint sv101_platform_id;
-            [MarshalAs(UnmanagedType.LPWStr)] public string sv101_name;
-            public uint sv101_version_major;
-            public uint sv101_version_minor;
-            public uint sv101_type;
-            [MarshalAs(UnmanagedType.LPWStr)] public string sv101_comment;
+            catch (Exception ex)
+            {
+                _staticLogger.LogDebug(ex, "Agent /info probe failed for {IP}", ip);
+                return (null, null, null);
+            }
         }
 
-        // Additional helper that performs a parallel /24 sweep and returns discovered machines.
-        public static IEnumerable<ClientMachine> DetectSubnet(string baseIp, int prefix = 24, int timeoutMs = 300)
+private static async Task<(string? name, string? mac, string? os)> TryGetAgentInfoAsync(string ip)
+{
+    try
+    {
+        _staticLogger.LogInformation("Entered TryGetAgentInfoAsync for {IP}", ip);
+        using var client = new HttpClient() { Timeout = TimeSpan.FromMilliseconds(5000) };
+        if (!string.IsNullOrWhiteSpace(AgentToken))
         {
-            if (string.IsNullOrWhiteSpace(baseIp))
+            if (!client.DefaultRequestHeaders.Contains("X-Scalae-Token"))
+                client.DefaultRequestHeaders.Add("X-Scalae-Token", AgentToken);
+        }
+
+        var uri = new UriBuilder("http", ip, AgentHttpPort, "/info").Uri;
+        var resp = await client.GetAsync(uri);
+        if (!resp.IsSuccessStatusCode) return (null, null, null);
+
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        string? name = root.TryGetProperty("name", out var pName) ? pName.GetString() : null;
+        string? mac = root.TryGetProperty("mac", out var pMac) ? pMac.GetString() : null;
+        string? os = root.TryGetProperty("os", out var pOs) ? pOs.GetString() : null;
+
+        return (name, mac, os);
+    }
+    catch (TaskCanceledException tcex)
+    {
+        _staticLogger.LogDebug(tcex, "Agent /info probe timed out for {IP}", ip);
+        return (null, null, null);
+    }
+    catch (Exception ex)
+    {
+        _staticLogger.LogDebug(ex, "Agent /info probe failed for {IP}", ip);
+        return (null, null, null);
+    }
+}
+
+private static string? NormalizeMac(string? mac)
+{
+    if (string.IsNullOrWhiteSpace(mac))
+        return null;
+
+    // Remove any non-hex characters
+    var hex = Regex.Replace(mac, "[^0-9A-Fa-f]", "");
+    if (hex.Length != 12)
+    {
+        // If it can't be normalized to 12 hex chars, return trimmed original value
+        return mac.Trim();
+    }
+
+    // Format as uppercase colon-separated MAC (AA:BB:CC:DD:EE:FF)
+    var sb = new StringBuilder(17);
+    for (int i = 0; i < 12; i += 2)
+    {
+        if (i > 0) sb.Append(':');
+        sb.Append(hex.Substring(i, 2).ToUpperInvariant());
+    }
+    return sb.ToString();
+}
+
+private static List<string> GetWorkstationsViaNetServerEnum(string? username, string? password)
+{
+    var result = new List<string>();
+
+    // Only attempt on Windows
+    if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        return result;
+
+    IntPtr bufPtr = IntPtr.Zero;
+    try
+    {
+        const int level = 100; // SERVER_INFO_100 (contains name)
+        int entriesRead = 0;
+        int totalEntries = 0;
+
+        var status = NetServerEnum(
+            servername: null,
+            level: level,
+            bufptr: out bufPtr,
+            prefmaxlen: -1,
+            entriesRead: out entriesRead,
+            totalEntries: out totalEntries,
+            servertype: SV_TYPE_WORKSTATION,
+            domain: null,
+            resume_handle: IntPtr.Zero);
+
+        if (status == NERR_Success && entriesRead > 0 && bufPtr != IntPtr.Zero)
+        {
+            var structSize = Marshal.SizeOf(typeof(SERVER_INFO_100));
+            for (int i = 0; i < entriesRead; i++)
             {
-                _staticLogger.LogError("Base IP is required for subnet detection");
-                throw new ArgumentNullException(nameof(baseIp));
+                var itemPtr = new IntPtr(bufPtr.ToInt64() + i * structSize);
+                var si = Marshal.PtrToStructure<SERVER_INFO_100>(itemPtr);
+                // Check the name field directly; the struct itself cannot be null
+                if (!string.IsNullOrWhiteSpace(si.sv100_name))
+                    result.Add(si.sv100_name);
             }
+        }
+    }
+    catch (Exception ex)
+    {
+        _staticLogger.LogDebug(ex, "NetServerEnum failed");
+    }
+    finally
+    {
+        if (bufPtr != IntPtr.Zero)
+            NetApiBufferFree(bufPtr);
+    }
 
-            // Only simple /24 supported for now
-            var baseParts = baseIp.Split('.');
-            if (baseParts.Length != 4)
-                throw new ArgumentException("Base IP must be IPv4 like 192.168.1.0", nameof(baseIp));
+    return result;
+}
 
-            var baseNetwork = $"{baseParts[0]}.{baseParts[1]}.{baseParts[2]}";
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+private struct SERVER_INFO_100
+{
+    public int sv100_platform_id;
+    [MarshalAs(UnmanagedType.LPWStr)]
+    public string sv100_name;
+}
 
-            var results = new ConcurrentBag<ClientMachine>();
-            Parallel.For(1, 255, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 }, i =>
+[DllImport("Netapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+private static extern int NetServerEnum(
+    string? servername,
+    int level,
+    out IntPtr bufptr,
+    int prefmaxlen,
+    out int entriesRead,
+    out int totalEntries,
+    uint servertype,
+    string? domain,
+    IntPtr resume_handle);
+
+[DllImport("Netapi32.dll", SetLastError = true)]
+private static extern int NetApiBufferFree(IntPtr Buffer);
+
+// Add near other private static helpers (e.g. NormalizeMac)
+[DllImport("iphlpapi.dll", ExactSpelling = true, SetLastError = true)]
+private static extern int SendARP(uint DestIP, uint SrcIP, byte[] pMacAddr, ref uint PhyAddrLen);
+
+private static string? GetMacFromArp(string ip)
+{
+    if (string.IsNullOrWhiteSpace(ip))
+        return null;
+
+    // Try native SendARP on Windows
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
+        try
+        {
+            if (!IPAddress.TryParse(ip, out var ipAddr))
+                return null;
+
+            var addrBytes = ipAddr.GetAddressBytes();
+            // BitConverter expects little-endian ordering on little-endian machines;
+            // SendARP commonly accepts the raw uint from the IPAddress bytes.
+            uint dest = BitConverter.ToUInt32(addrBytes, 0);
+
+            var macBuffer = new byte[6];
+            uint macLen = (uint)macBuffer.Length;
+            var r = SendARP(dest, 0, macBuffer, ref macLen);
+            if (r == 0 && macLen > 0)
             {
-                var ip = $"{baseNetwork}.{i}";
-                try
+                var macSb = new StringBuilder();
+                for (int i = 0; i < macLen; i++)
                 {
-                    using var ping = new Ping();
-                    var reply = ping.Send(ip, timeoutMs);
-                    if (reply != null && reply.Status == IPStatus.Success)
-                    {
-                        var cm = ClientDetectIP(ip);
-                        results.Add(cm);
-                    }
+                    if (i > 0) macSb.Append(':');
+                    macSb.Append(macBuffer[i].ToString("X2"));
                 }
-                catch
-                {
-                    _staticLogger.LogWarning("Failed to ping IP {IP} during subnet detection", ip);
-                    // ignore host
-                }
-            });
-
-            return results.OrderBy(r => r.IPAddress ?? string.Empty).ToArray();
+                return macSb.ToString();
+            }
         }
-
-        // --- Internal helpers ---
-
-        private static string? NormalizeMac(string? mac)
+        catch
         {
-            if (string.IsNullOrWhiteSpace(mac))
-            {
-                _staticLogger.LogDebug("No MAC address provided to normalize");
-                return null; 
-            }
-
-            var cleaned = Regex.Replace(mac, @"[^0-9A-Fa-f]", "");
-            if (cleaned.Length != 12)
-            {
-                _staticLogger.LogWarning("Invalid MAC address format: {MAC}", mac);
-                return mac.ToUpperInvariant();
-            }
-               
-            var parts = Enumerable.Range(0, 6).Select(i => cleaned.Substring(i * 2, 2));
-            _staticLogger.LogDebug("Normalized MAC address {Original} to {Normalized}", mac, string.Join(":", parts).ToUpperInvariant());
-            return string.Join(":", parts).ToUpperInvariant();
-        }
-
-        private static string GetMacFromArp(string ipAddress)
-        {
-            var table = GetArpTable();
-            if (table.TryGetValue(ipAddress, out var mac))
-            {
-                _staticLogger.LogDebug("Found MAC {MAC} for IP {IP} in ARP table", mac, ipAddress);
-                return mac; 
-            }
-
-            throw new InvalidOperationException("MAC not found in ARP table for IP: " + ipAddress);
-        }
-
-        private static IPAddress ComputeBroadcast(IPAddress address, IPAddress mask)
-        {
-            var addrBytes = address.GetAddressBytes();
-            var maskBytes = mask.GetAddressBytes();
-            var broad = new byte[addrBytes.Length];
-
-            for (int i = 0; i < addrBytes.Length; i++)
-            {
-                broad[i] = (byte)(addrBytes[i] | (~maskBytes[i]));
-            }
-
-            _staticLogger.LogDebug("Computed broadcast address {Broadcast} from IP {IP} and Mask {Mask}", new IPAddress(broad), address, mask);
-            return new IPAddress(broad);
-        }
-
-        // Returns mapping IP -> MAC from local ARP table by parsing 'arp -a' output.
-        private static Dictionary<string, string> GetArpTable()
-        {
-            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "arp",
-                    Arguments = "-a",
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true
-                };
-
-                using var p = Process.Start(psi);
-                var output = p?.StandardOutput.ReadToEnd() ?? string.Empty;
-                p?.WaitForExit(1000);
-
-                // Parse lines like: "  192.168.1.1           00-11-22-33-44-55     dynamic"
-                var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                var rx = new Regex(@"^\s*(\d{1,3}(?:\.\d{1,3}){3})\s+([0-9A-Fa-f:-]{17}|[0-9A-Fa-f-]{14,17}|[0-9A-Fa-f]{12})\s+\w+", RegexOptions.Compiled);
-
-                foreach (var line in lines)
-                {
-                    var m = rx.Match(line);
-                    if (m.Success)
-                    {
-                        var ip = m.Groups[1].Value.Trim();
-                        var mac = m.Groups[2].Value.Trim().Replace('-', ':').ToUpperInvariant();
-                        result[ip] = mac;
-                    }
-                }
-            }
-            catch
-            {
-                // ignore failures; return whatever we parsed (possibly empty)
-                _staticLogger.LogError("Failed to retrieve ARP table: {Message}", "ARP command failed");
-            }
-
-            _staticLogger.LogInformation("Retrieved ARP table with {Count} entries", result.Count);
-            return result;
+            // fall through to arp -a fallback
         }
     }
 
+    // Fallback: parse `arp -a` output (cross-platform attempt)
+    try
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "arp" : "arp",
+            Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"-a {ip}" : "-a",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        using var p = Process.Start(psi);
+        var output = p?.StandardOutput.ReadToEnd() ?? string.Empty;
+        p?.WaitForExit(1000);
+
+        // Look for the IP in output and extract MAC-like token
+        // Windows arp line example: "  192.168.1.5           00-11-22-33-44-55     dynamic"
+        // Unix example: "192.168.1.5 ether 00:11:22:33:44:55 C eth0"
+        var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            if (!line.Contains(ip)) continue;
+
+            // Extract possible MAC token
+            var parts = Regex.Split(line.Trim(), @"\s+");
+            foreach (var part in parts)
+            {
+                // Accept formats AA-BB-CC-DD-EE-FF or AA:BB:CC:DD:EE:FF
+                if (Regex.IsMatch(part, "^[0-9A-Fa-f]{2}([-:])[0-9A-Fa-f]{2}(\\1[0-9A-Fa-f]{2}){4}$"))
+                {
+                    // Normalize to colon-separated uppercase
+                    var normalized = Regex.Replace(part, "[-:]", ":").ToUpperInvariant();
+                    return normalized;
+                }
+            }
+        }
+    }
+    catch
+    {
+        // ignore fallback failures
+    }
+
+    return null;
+}
+
+private static IPAddress ComputeBroadcast(IPAddress address, IPAddress mask)
+{
+    if (address == null) throw new ArgumentNullException(nameof(address));
+    if (mask == null) throw new ArgumentNullException(nameof(mask));
+    if (address.AddressFamily != AddressFamily.InterNetwork || mask.AddressFamily != AddressFamily.InterNetwork)
+        throw new ArgumentException("Only IPv4 addresses are supported by ComputeBroadcast.");
+
+    var addrBytes = address.GetAddressBytes();
+    var maskBytes = mask.GetAddressBytes();
+    if (addrBytes.Length != maskBytes.Length)
+        throw new ArgumentException("Address and mask lengths differ.");
+
+    var broadcast = new byte[addrBytes.Length];
+    for (int i = 0; i < addrBytes.Length; i++)
+    {
+        // (~maskBytes[i] & 0xFF) to avoid sign-extension when converting to byte
+        broadcast[i] = (byte)(addrBytes[i] | (~maskBytes[i] & 0xFF));
+    }
+
+    return new IPAddress(broadcast);
+}
+
+private static Dictionary<string, string> GetArpTable()
+{
+    var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    try
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = "arp",
+            Arguments = "-a",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var p = Process.Start(psi);
+        var output = p?.StandardOutput.ReadToEnd() ?? string.Empty;
+        p?.WaitForExit(1000);
+
+        var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            // Find IPv4 and MAC tokens in the line
+            var ipMatch = Regex.Match(line, @"\b(?:\d{1,3}\.){3}\d{1,3}\b");
+            var macMatch = Regex.Match(line, @"[0-9A-Fa-f]{2}([-:])[0-9A-Fa-f]{2}(\1[0-9A-Fa-f]{2}){4}");
+
+            if (ipMatch.Success && macMatch.Success)
+            {
+                var ip = ipMatch.Value;
+                var mac = NormalizeMac(macMatch.Value);
+                if (!string.IsNullOrWhiteSpace(ip) && !string.IsNullOrWhiteSpace(mac))
+                {
+                    if (!mapping.ContainsKey(ip))
+                        mapping[ip] = mac!;
+                }
+            }
+        }
+    }
+    catch
+    {
+        // Swallow errors and return whatever we could parse (consistent with other helpers)
+    }
+
+    return mapping;
+}
+    }
 }
