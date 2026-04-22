@@ -302,7 +302,7 @@ namespace Scalae
                 _detectedMachines.Clear();
 
                 // Run network discovery on background thread
-                var discovered = await Task.Run(() => ClientDetection.ClientDetectAuto(timeoutMs: 5000));
+                var discovered = await Task.Run(() => ClientDetection.ClientDetectAutoAsync(timeoutMs: 5000));
 
                 // PING each discovered machine to populate ARP table, then re-query
                 var enhanced = await Task.Run(() =>

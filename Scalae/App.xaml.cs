@@ -45,6 +45,13 @@ namespace Scalae
                 .AddSingleton<MainWindow>()
                 .BuildServiceProvider();
 
+            // Set static logger using resolved LoggingService
+            var loggingService = serviceProvider.GetRequiredService<ILoggingService>();
+            ClientDetection.SetStaticLogger(loggingService.CreateLogger<ClientDetection>());
+
+            // Seed test data (no-op if already present)
+            DatabaseSeeder.Seed();
+
             // Resolve the main window and show it
             var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
