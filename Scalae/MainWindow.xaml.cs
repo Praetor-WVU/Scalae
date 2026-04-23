@@ -112,9 +112,10 @@ namespace Scalae
     LBDetected.ItemsSource = _detectedMachines;
     LBWhitelist.ItemsSource = _whiteList;
     LBBlacklist.ItemsSource = _blackList;
+    SelectedMachine_Graphing.ItemsSource = _machines;
 
-    // Initialize empty plot
-    Loaded += (s, e) =>
+            // Initialize empty plot
+            Loaded += (s, e) =>
     {
         WpfPlot1.Plot.Title("Select a machine to view history");
         WpfPlot1.Refresh();

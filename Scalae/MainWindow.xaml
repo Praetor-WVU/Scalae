@@ -296,15 +296,12 @@
                     </Grid.RowDefinitions>
 
 
-
-                    <Button Grid.Column="0" Content="Select" HorizontalAlignment="Center" Margin="0,10,0,0" VerticalAlignment="Top" Click="BtnSelect_Click"/>
-
-                    <ListBox x:Name="LBSelected" Grid.Row="0" Background="#90fcf9" SelectionMode="Multiple" Grid.RowSpan="3" Margin="0,35,5,0">
+                    <ListBox x:Name="SelectedMachine_Graphing" Grid.Column="0" Background="#90fcf9" SelectionMode="Multiple" Grid.RowSpan="3" Margin="0,0,5,0">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Vertical" Margin="4">
                                     <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                    <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="LightGray"/>
+                                    <TextBlock Text="{Binding IPAddress}" FontSize="12" Foreground="Gray"/>
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -312,16 +309,16 @@
 
 
 
-                    <Grid Grid.Column="1" Margin="14,-2,10,149" Grid.RowSpan="2">
+                    <Grid Grid.Column="1" Grid.RowSpan="3">
                         <Grid.RowDefinitions>
                             <RowDefinition Height=".33*"/>
                             <RowDefinition Height=".33*"/>
                             <RowDefinition Height=".33*"/>
                         </Grid.RowDefinitions>
 
-                        <ScottPlot:WpfPlot x:Name="graph1"  Grid.Column="1" Grid.Row="0" Margin="5,20,5,20"/>
-                        <ScottPlot:WpfPlot x:Name="graph2"  Grid.Column="1" Grid.Row="1" Margin="5,20,5,20"/>
-                        <ScottPlot:WpfPlot x:Name="graph3"  Grid.Column="1" Grid.Row="2" Margin="5,20,5,20"/>
+                        <ScottPlot:WpfPlot x:Name="graph1" Grid.Row="0" Margin="5,20,5,20" MinHeight="100"/>
+                        <ScottPlot:WpfPlot x:Name="graph2" Grid.Row="1" Margin="5,20,5,20" MinHeight="100"/>
+                        <ScottPlot:WpfPlot x:Name="graph3" Grid.Row="2" Margin="5,20,5,20" MinHeight="100"/>
                     </Grid>
                 </Grid>
             </TabItem>
