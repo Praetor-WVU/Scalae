@@ -541,10 +541,9 @@ namespace Scalae
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void BtnSelect_Click(object sender, RoutedEventArgs e)
         {
-            Selection selectwin = new Selection();
-            selectwin.Show();
+           
 
         }
 
